@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
  // 检查微信内置浏览器的用户代理
   const userAgent = navigator.userAgent.toLowerCase();
-  if (userAgent.includes('micromessenger')) {
+  if (userAgent.includes('MicroMessenger')) {
     wechatWarning.classList.remove('hidden');
     return; // 如果在微信中打开，则不需要执行后续的 JavaScript
   }
