@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const videoModal = document.getElementById('videoModal');
   const regionVideo = document.getElementById('regionVideo');
-  const closeModal = document.getElementById('closeModal');
   const regions = document.querySelectorAll('.region');
 
   regions.forEach(region => {
@@ -15,9 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  closeModal.addEventListener('click', () => {
-    videoModal.classList.add('hidden');
-    regionVideo.pause();
-    regionVideo.src = ''; // 重置视频源以停止下载
+  videoModal.addEventListener('click', (e) => {
+    if (e.target === videoModal) {
+      videoModal.classList.add('hidden');
+      regionVideo.pause();
+      regionVideo.src = ''; // 重置视频源以停止下载
+    }
   });
 });
