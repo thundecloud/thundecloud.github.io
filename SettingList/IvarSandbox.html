@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恒星系「奥」运动模拟器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        .status {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .phase {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffeb3b;
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+        
+        .eclipse-warning {
+            color: #ff4444;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        #shadow-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui">
+            <div class="phase" id="phase">光年期</div>
+            <div class="status" id="planet-pos">行星位置: 4.99 AU</div>
+            <div class="status" id="moon-pos">卫星位置: 0°</div>
+            <div class="status" id="eclipse-status">日食状态: 无</div>
+            <div class="status" id="shadow-size">本影半径: 45,320 km</div>
+            <div class="status" id="time-elapsed">时间: 0.0 伊瓦尔年</div>
+        </div>
+        
+        <div id="shadow-info">
+            <h3>暗潮现象解析</h3>
+            <div id="shadow-details">
+                <p>本影锥长度: 42,464,000 km</p>
+                <p>卫星轨道处本影半径: 随行星距离变化</p>
+                <p>全食条件: 本影半径 > 卫星半径 (7,321 km)</p>
+                <p>最长全食: 5.0小时 (暗年时)</p>
+            </div>
+        </div>
+        
+        <div id="controls">
+            <button onclick="toggleAnimation()">⏸️ 暂停</button>
+            <button onclick="resetAnimation()">🔄 重置</button>
+            <label>速度: <input type="range" id="speed" min="0.01" max="10" value="1" step="0.01" oninput="updateSpeed()"></label>
+            <label>视角: <input type="range" id="view" min="0" max="360" value="45" oninput="updateView()"></label>
+            <button onclick="toggleViewMode()">🌍 全局视角</button>
+            <button onclick="toggleOrbitPaths()">🛤️ 轨道</button>
+            <button onclick="zoomIn()">🔍 放大</button>
+            <button onclick="zoomOut()">🔍 缩小</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 场景设置
+        let scene, camera, renderer, controls;
+        let star, planet, moon, shadowCone;
+        let starLight, planetLight, ambientLight;
+        let planetOrbit, moonOrbit;
+        let animationRunning = true;
+        let timeScale = 1;
+        let showOrbitPaths = true;
+        
+        // 系统参数 (缩放比例)
+        const SCALE = 1000000; // 1百万倍缩放
+        const TIME_SCALE = 365 * 24; // 时间加速
+        
+        // 增大天体半径以便观察
+        const STAR_RADIUS = Math.max(1099206 / SCALE, 5); // 最小5单位
+        const PLANET_RADIUS = Math.max(80000 / SCALE, 2); // 最小2单位
+        const MOON_RADIUS = Math.max(7321 / SCALE, 1); // 最小1单位
+        const PLANET_ORBIT_A = 3.9 * 149597870.7 / SCALE; // AU转km再缩放
+        const PLANET_ORBIT_E = 0.28;
+        const MOON_ORBIT_R = 2250000 / SCALE;
+        const SHADOW_CONE_LENGTH = 42464000 / SCALE;
+        
+        // 时间变量
+        let currentTime = 0;
+        let moonAngle = 0;
+        let planetAngle = 0;
+        let viewMode = 'global'; // 'global' 或 'planet'
+        let cameraDistance = 800;
+        
+        init();
+        animate();
+        
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 20000);
+            camera.position.set(0, 200, 800);
+            camera.lookAt(0, 0, 0);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // 创建恒星「奥」
+            const starGeometry = new THREE.SphereGeometry(STAR_RADIUS, 32, 32);
+            const starMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                emissive: 0xffffaa,
+                emissiveIntensity: 1.0
+            });
+            star = new THREE.Mesh(starGeometry, starMaterial);
+            // 添加恒星光环效果
+            const starGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(STAR_RADIUS * 1.5, 32, 32),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0xffffaa,
+                    transparent: true,
+                    opacity: 0.3
+                })
+            );
+            star.add(starGlow);
+            scene.add(star);
+            
+            // 创建行星「太阳」
+            const planetGeometry = new THREE.SphereGeometry(PLANET_RADIUS, 32, 32);
+            const planetMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x8866ff,
+                specular: 0x4444ff,
+                shininess: 100,
+                emissive: 0x1122cc,
+                emissiveIntensity: 0.2
+            });
+            planet = new THREE.Mesh(planetGeometry, planetMaterial);
+            planet.castShadow = true;
+            planet.receiveShadow = true;
+            // 添加行星光环
+            const planetGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(PLANET_RADIUS * 1.3, 32, 32),
+                new THREE.MeshBasicMaterial({ 
+                    color: 0x6644ff,
+                    transparent: true,
+                    opacity: 0.2
+                })
+            );
+            planet.add(planetGlow);
+            scene.add(planet);
+            
+            // 创建卫星「伊瓦尔」
+            const moonGeometry = new THREE.SphereGeometry(MOON_RADIUS, 16, 16);
+            const moonMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x888888,
+                specular: 0x222222,
+                shininess: 50,
+                map: createMoonTexture()
+            });
+            moon = new THREE.Mesh(moonGeometry, moonMaterial);
+            moon.castShadow = true;
+            moon.receiveShadow = true;
+            scene.add(moon);
+            
+            // 创建阴影锥体（可视化）
+            const shadowGeometry = new THREE.ConeGeometry(PLANET_RADIUS * 2, SHADOW_CONE_LENGTH, 8);
+            const shadowMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            shadowCone = new THREE.Mesh(shadowGeometry, shadowMaterial);
+            shadowCone.visible = false;
+            scene.add(shadowCone);
+            
+            // 创建轨道路径
+            createOrbitPaths();
+            
+            // 创建光源
+            starLight = new THREE.DirectionalLight(0xffffff, 1);
+            starLight.castShadow = true;
+            starLight.shadow.mapSize.width = 2048;
+            starLight.shadow.mapSize.height = 2048;
+            starLight.shadow.camera.near = 0.1;
+            starLight.shadow.camera.far = 5000;
+            starLight.shadow.camera.left = -1000;
+            starLight.shadow.camera.right = 1000;
+            starLight.shadow.camera.top = 1000;
+            starLight.shadow.camera.bottom = -1000;
+            scene.add(starLight);
+            
+            planetLight = new THREE.PointLight(0x6666ff, 0.5, 2000);
+            scene.add(planetLight);
+            
+            ambientLight = new THREE.AmbientLight(0x404040, 0.1);
+            scene.add(ambientLight);
+            
+            // 添加星空背景
+            addStarField();
+            
+            // 窗口大小调整
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function createOrbitPaths() {
+            // 行星轨道
+            const planetOrbitGeometry = new THREE.BufferGeometry();
+            const planetOrbitPoints = [];
+            for (let i = 0; i <= 360; i++) {
+                const angle = (i * Math.PI) / 180;
+                const r = PLANET_ORBIT_A * (1 - PLANET_ORBIT_E * PLANET_ORBIT_E) / (1 + PLANET_ORBIT_E * Math.cos(angle));
+                const x = r * Math.cos(angle);
+                const z = r * Math.sin(angle);
+                planetOrbitPoints.push(x, 0, z);
+            }
+            planetOrbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(planetOrbitPoints, 3));
+            
+            const planetOrbitMaterial = new THREE.LineBasicMaterial({ color: 0x666666, transparent: true, opacity: 0.5 });
+            planetOrbit = new THREE.Line(planetOrbitGeometry, planetOrbitMaterial);
+            scene.add(planetOrbit);
+            
+            // 卫星轨道（动态更新位置）
+            const moonOrbitGeometry = new THREE.BufferGeometry();
+            const moonOrbitPoints = [];
+            for (let i = 0; i <= 360; i++) {
+                const angle = (i * Math.PI) / 180;
+                const x = MOON_ORBIT_R * Math.cos(angle);
+                const z = MOON_ORBIT_R * Math.sin(angle);
+                moonOrbitPoints.push(x, 0, z);
+            }
+            moonOrbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(moonOrbitPoints, 3));
+            
+            const moonOrbitMaterial = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.3 });
+            moonOrbit = new THREE.Line(moonOrbitGeometry, moonOrbitMaterial);
+            scene.add(moonOrbit);
+        }
+        
+        function addStarField() {
+            const starsGeometry = new THREE.BufferGeometry();
+            const starsVertices = [];
+            
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 20000;
+                const y = (Math.random() - 0.5) * 20000;
+                const z = (Math.random() - 0.5) * 20000;
+                starsVertices.push(x, y, z);
+            }
+            
+            starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+            
+            const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+            const stars = new THREE.Points(starsGeometry, starsMaterial);
+            scene.add(stars);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (animationRunning) {
+                currentTime += 0.01 * timeScale;
+                updatePositions();
+                updateUI();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function updatePositions() {
+            // 更新行星位置 (椭圆轨道)
+            const planetPeriod = 8.4 * 365.25; // 地球日
+            planetAngle = (currentTime * TIME_SCALE * 2 * Math.PI) / planetPeriod;
+            
+            // 椭圆轨道计算
+            const r = PLANET_ORBIT_A * (1 - PLANET_ORBIT_E * PLANET_ORBIT_E) / (1 + PLANET_ORBIT_E * Math.cos(planetAngle));
+            const planetX = r * Math.cos(planetAngle);
+            const planetZ = r * Math.sin(planetAngle);
+            
+            planet.position.set(planetX, 0, planetZ);
+            
+            // 更新卫星位置 (相对于行星)
+            const moonPeriod = 19.5; // 地球日
+            moonAngle = (currentTime * TIME_SCALE * 2 * Math.PI) / moonPeriod;
+            
+            const moonX = planetX + MOON_ORBIT_R * Math.cos(moonAngle);
+            const moonZ = planetZ + MOON_ORBIT_R * Math.sin(moonAngle);
+            
+            moon.position.set(moonX, 0, moonZ);
+            
+            // 更新卫星轨道位置
+            moonOrbit.position.set(planetX, 0, planetZ);
+            
+            // 更新光源位置
+            starLight.position.set(0, 0, 0);
+            starLight.target.position.set(planetX, 0, planetZ);
+            starLight.target.updateMatrixWorld();
+            
+            planetLight.position.set(planetX, 0, planetZ);
+            
+            // 更新相机位置
+            updateCamera();
+            
+            // 更新阴影锥
+            updateShadowCone(planetX, planetZ, r);
+        }
+        
+        function updateShadowCone(planetX, planetZ, planetDistance) {
+            const direction = new THREE.Vector3(planetX, 0, planetZ).normalize();
+            const conePosition = new THREE.Vector3().copy(direction).multiplyScalar(planetDistance + SHADOW_CONE_LENGTH / 2);
+            
+            shadowCone.position.copy(conePosition);
+            shadowCone.lookAt(new THREE.Vector3().copy(direction).multiplyScalar(planetDistance + SHADOW_CONE_LENGTH));
+            
+            // 计算本影大小
+            const shadowRadius = calculateShadowRadius(planetDistance);
+            shadowCone.scale.set(shadowRadius / PLANET_RADIUS, 1, shadowRadius / PLANET_RADIUS);
+        }
+        
+        function calculateShadowRadius(planetDistance) {
+            // 使用实际的天体物理公式计算本影半径
+            // 本影半径 = 行星半径 × (1 - 距离/本影锥长度)
+            const realPlanetDistance = planetDistance * SCALE; // 实际距离 km
+            const realPlanetRadius = PLANET_RADIUS * SCALE; // 实际行星半径 km
+            const realMoonOrbitRadius = MOON_ORBIT_R * SCALE; // 实际卫星轨道半径 km
+            const realShadowConeLength = SHADOW_CONE_LENGTH * SCALE; // 实际本影锥长度 km
+            
+            // 本影半径 = 行星半径 × (本影锥长度 - 卫星轨道距离) / 本影锥长度
+            const shadowRadius = realPlanetRadius * (realShadowConeLength - realMoonOrbitRadius) / realShadowConeLength;
+            
+            return Math.max(0, shadowRadius); // 返回实际半径 km
+        }
+        
+        function updateUI() {
+            const planetPeriod = 8.4 * 365.25;
+            const ivarYear = (currentTime * TIME_SCALE) / 365.25;
+            const planetDistance = PLANET_ORBIT_A * (1 - PLANET_ORBIT_E * PLANET_ORBIT_E) / (1 + PLANET_ORBIT_E * Math.cos(planetAngle));
+            const realPlanetDistance = planetDistance * SCALE / 149597870.7; // 转换为AU
+            
+            // 判断光年/暗年
+            const isNearPerihelion = realPlanetDistance < 3.5; // 近日点区域
+            const phase = isNearPerihelion ? "暗年期" : "光年期";
+            
+            // 计算日食状态
+            const shadowRadius = calculateShadowRadius(realPlanetDistance * 149597870.7); // 传入km
+            const isEclipse = shadowRadius > (MOON_RADIUS * SCALE); // 比较实际半径
+            
+            // 计算卫星与阴影锥的相对位置
+            const moonRelativeAngle = moonAngle * 180 / Math.PI % 360;
+            const shadowDirection = Math.atan2(planet.position.z, planet.position.x) * 180 / Math.PI;
+            const angleToShadow = Math.abs(moonRelativeAngle - shadowDirection) % 360;
+            const inShadow = angleToShadow < 10 || angleToShadow > 350; // 10度容差
+            
+            let eclipseStatus = "无";
+            if (isEclipse && inShadow) {
+                eclipseStatus = "暗潮全食中!";
+            } else if (isEclipse) {
+                eclipseStatus = "暗潮可能";
+            }
+            
+            // 更新UI
+            document.getElementById('phase').textContent = phase;
+            document.getElementById('phase').className = isNearPerihelion ? 'phase eclipse-warning' : 'phase';
+            document.getElementById('planet-pos').textContent = `行星位置: ${realPlanetDistance.toFixed(2)} AU`;
+            document.getElementById('moon-pos').textContent = `卫星位置: ${moonRelativeAngle.toFixed(1)}°`;
+            document.getElementById('eclipse-status').textContent = `日食状态: ${eclipseStatus}`;
+            document.getElementById('eclipse-status').className = eclipseStatus.includes('暗潮') ? 'status eclipse-warning' : 'status';
+            document.getElementById('shadow-size').textContent = `本影半径: ${(shadowRadius / 1000).toFixed(0)} km`;
+            document.getElementById('time-elapsed').textContent = `时间: ${ivarYear.toFixed(1)} 伊瓦尔年`;
+            
+            // 显示/隐藏阴影锥
+            shadowCone.visible = isEclipse && showOrbitPaths;
+        }
+        
+        function toggleAnimation() {
+            animationRunning = !animationRunning;
+            document.querySelector('#controls button').textContent = animationRunning ? '⏸️ 暂停' : '▶️ 播放';
+        }
+        
+        function resetAnimation() {
+            currentTime = 0;
+            planetAngle = 0;
+            moonAngle = 0;
+        }
+        
+        function updateSpeed() {
+            timeScale = parseFloat(document.getElementById('speed').value);
+        }
+        
+        function updateView() {
+            const angle = parseInt(document.getElementById('view').value);
+            
+            if (viewMode === 'global') {
+                camera.position.x = cameraDistance * Math.cos(angle * Math.PI / 180);
+                camera.position.z = cameraDistance * Math.sin(angle * Math.PI / 180);
+                camera.position.y = cameraDistance * 0.3;
+                camera.lookAt(0, 0, 0);
+            } else if (viewMode === 'planet') {
+                // 行星视角也能调整角度
+                const planetPos = planet.position;
+                const offset = 50;
+                camera.position.set(
+                    planetPos.x + offset * Math.cos(angle * Math.PI / 180),
+                    planetPos.y + 20,
+                    planetPos.z + offset * Math.sin(angle * Math.PI / 180)
+                );
+                camera.lookAt(planetPos);
+            }
+        }
+        
+        function updateCamera() {
+            if (viewMode === 'planet') {
+                // 行星视角：使用当前滑块角度
+                const angle = parseInt(document.getElementById('view').value);
+                const planetPos = planet.position;
+                const offset = 50;
+                camera.position.set(
+                    planetPos.x + offset * Math.cos(angle * Math.PI / 180),
+                    planetPos.y + 20,
+                    planetPos.z + offset * Math.sin(angle * Math.PI / 180)
+                );
+                camera.lookAt(planetPos);
+            }
+        }
+        
+        function toggleViewMode() {
+            viewMode = viewMode === 'global' ? 'planet' : 'global';
+            const button = document.querySelector('button[onclick="toggleViewMode()"]');
+            button.textContent = viewMode === 'global' ? '🌍 全局视角' : '🪐 行星视角';
+            
+            if (viewMode === 'global') {
+                updateView();
+            }
+        }
+        
+        function zoomIn() {
+            cameraDistance *= 0.8;
+            if (viewMode === 'global') {
+                updateView();
+            }
+        }
+        
+        function zoomOut() {
+            cameraDistance *= 1.25;
+            if (viewMode === 'global') {
+                updateView();
+            }
+        }
+        
+        function createMoonTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // 创建月球表面纹理
+            const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, '#999');
+            gradient.addColorStop(1, '#333');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 128, 128);
+            
+            // 添加陨石坑
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * 128;
+                const y = Math.random() * 128;
+                const r = Math.random() * 8 + 2;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = '#222';
+                ctx.fill();
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+        
+        function toggleOrbitPaths() {
+            showOrbitPaths = !showOrbitPaths;
+            planetOrbit.visible = showOrbitPaths;
+            moonOrbit.visible = showOrbitPaths;
+            shadowCone.visible = showOrbitPaths && shadowCone.visible;
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
