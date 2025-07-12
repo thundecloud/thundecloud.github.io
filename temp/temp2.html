@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硬币游戏概率可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+        }
+        
+        .tab-content {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input, select, button {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .simulation-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .current-sequence {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #fff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .winner {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .winner.xiaoming {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        
+        .sequence-generation {
+            margin-bottom: 20px;
+        }
+        
+        .sequence-steps {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        
+        .step-item {
+            padding: 2px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .step-item:last-child {
+            border-bottom: none;
+        }
+        
+        .step-number {
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .step-coin {
+            color: #2196f3;
+            font-weight: bold;
+        }
+        
+        .step-sequence {
+            color: #333;
+        }
+        
+        .step-check {
+            color: #f44336;
+            font-style: italic;
+        }
+        
+        .step-final {
+            background: #fff3cd;
+            padding: 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .history {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: #fff;
+        }
+        
+        .history-item {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .theory-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .theory-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .math-formula {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .tree-diagram {
+            font-family: 'Courier New', monospace;
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            overflow-x: auto;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>硬币游戏概率可视化</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('simulation')">模拟游戏</button>
+            <button class="tab" onclick="showTab('theory')">理论解释</button>
+        </div>
+        
+        <div id="simulation" class="tab-content active">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="mode">模式</label>
+                    <select id="mode" onchange="changeMode()">
+                        <option value="fast">快速模式</option>
+                        <option value="slow">慢速模式</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="games">游戏次数</label>
+                    <input type="number" id="games" value="10000" min="1" max="100000">
+                </div>
+                
+                <button onclick="startSimulation()" id="startBtn">开始模拟</button>
+                <button onclick="stopSimulation()" id="stopBtn" disabled>停止模拟</button>
+                <button onclick="resetSimulation()" id="resetBtn">重置</button>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div id="slowModeDisplay" class="simulation-display" style="display: none;">
+                <h3>序列生成过程</h3>
+                <div id="sequenceGeneration" class="sequence-generation">
+                    <div id="currentSequence" class="current-sequence"></div>
+                    <div id="sequenceSteps" class="sequence-steps"></div>
+                </div>
+                <div id="winner" class="winner"></div>
+                <div id="gameProgress"></div>
+                
+                <h3>历史记录</h3>
+                <div id="history" class="history"></div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="resultsChart"></canvas>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="xiaomingWins">0</div>
+                    <div>小明获胜 (TTH)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="xiaohongWins">0</div>
+                    <div>小红获胜 (THT)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="winRatio">0:0</div>
+                    <div>获胜比例</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalGames">0</div>
+                    <div>总游戏数</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="theory" class="tab-content">
+            <div class="theory-section">
+                <h3>1. 概率论解释</h3>
+                <p>让我们用条件概率来分析这个问题。设置状态空间和转移概率：</p>
+                
+                <div class="math-formula">
+                    <strong>状态定义：</strong><br>
+                    S₀: 初始状态<br>
+                    S₁: 最后一个硬币是T（反）<br>
+                    S₂: 最后两个硬币是TT（反反）<br>
+                    S₃: 最后两个硬币是TH（反正）<br>
+                    TTH: 小明获胜（反反正）<br>
+                    THT: 小红获胜（反正反）
+                </div>
+                
+                <p>建立状态转移方程组：</p>
+                
+                <div class="math-formula">
+                    <strong>转移概率方程：</strong><br>
+                    P(S₀) = 1<br>
+                    P(S₁) = 0.5 × P(S₀) + 0.5 × P(S₃)<br>
+                    P(S₂) = 0.5 × P(S₁)<br>
+                    P(S₃) = 0.5 × P(S₁)<br>
+                    P(TTH) = 0.5 × P(S₂)<br>
+                    P(THT) = 0.5 × P(S₃)
+                </div>
+                
+                <p>解这个方程组：</p>
+                
+                <div class="math-formula">
+                    <strong>期望到达时间计算：</strong><br>
+                    设 E[T_TTH] 为到达TTH的期望时间<br>
+                    设 E[T_THT] 为到达THT的期望时间<br><br>
+                    
+                    通过马尔可夫链分析：<br>
+                    E[T_TTH] = 8<br>
+                    E[T_THT] = 4<br><br>
+                    
+                    因此获胜概率比例：<br>
+                    P(THT获胜) : P(TTH获胜) = E[T_TTH] : E[T_THT] = 8 : 4 = 2 : 1
+                </div>
+            </div>
+            
+            <div class="theory-section">
+                <h3>2. 树状图分析</h3>
+                <p>通过构建完整的状态树来分析每个模式的到达概率：</p>
+                
+                <div class="tree-diagram">
+<pre>
+状态转移树：
+
+开始
+├─ H(0.5) → 回到开始
+└─ T(0.5) → 状态T
+    ├─ H(0.5) → 状态TH
+    │   ├─ H(0.5) → 回到开始
+    │   └─ T(0.5) → THT (小红获胜!) ★
+    └─ T(0.5) → 状态TT
+        ├─ H(0.5) → TTH (小明获胜!) ★
+        └─ T(0.5) → 状态TTT
+            ├─ H(0.5) → TTTH → TTH (小明获胜!) ★
+            └─ T(0.5) → TTTT → ...继续
+
+分析关键路径：
+- THT模式：T → TH → THT (概率路径: 0.5 × 0.5 × 0.5 = 0.125)
+- TTH模式：T → TT → TTH (概率路径: 0.5 × 0.5 × 0.5 = 0.125)
+
+但关键在于"重叠"效应：
+- 当出现TH后，如果下一个是H，需要完全重新开始
+- 当出现TT后，如果下一个是T，可以继续保持在TT状态
+
+这种重叠效应导致TTH模式需要更长的期望时间才能出现！
+</pre>
+                </div>
+            </div>
+            
+            <div class="theory-section">
+                <h3>3. 详细的概率计算</h3>
+                <p>使用递归方法计算期望等待时间：</p>
+                
+                <div class="math-formula">
+                    <strong>递归方程：</strong><br>
+                    设 E₀ = 从开始到游戏结束的期望时间<br>
+                    设 E₁ = 从状态T到游戏结束的期望时间<br>
+                    设 E₂ = 从状态TT到游戏结束的期望时间<br>
+                    设 E₃ = 从状态TH到游戏结束的期望时间<br><br>
+                    
+                    E₀ = 1 + 0.5×E₀ + 0.5×E₁<br>
+                    E₁ = 1 + 0.5×E₃ + 0.5×E₂<br>
+                    E₂ = 1 + 0.5×0 + 0.5×E₂  (TTH结束或继续TT)<br>
+                    E₃ = 1 + 0.5×E₀ + 0.5×0  (回到开始或THT结束)<br><br>
+                    
+                    解得：E₂ = 2, E₃ = 2, E₁ = 4, E₀ = 6<br><br>
+                    
+                    TTH的期望首次出现时间：E₀ = 6 + 2 = 8<br>
+                    THT的期望首次出现时间：E₀ = 6 - 2 = 4<br><br>
+                    
+                    <strong>因此胜率比例确实是 2:1</strong>
+                </div>
+            </div>
+            
+            <div class="theory-section">
+                <h3>4. 直觉解释</h3>
+                <p><strong>为什么TTH比THT更难出现？</strong></p>
+                <p>关键在于"自重叠"特性：</p>
+                <ul>
+                    <li><strong>THT模式</strong>：如果我们已经看到TH，接下来出现H就必须完全重新开始寻找T</li>
+                    <li><strong>TTH模式</strong>：如果我们已经看到TT，接下来出现T我们仍然保持在"寻找TTH"的有利位置</li>
+                </ul>
+                <p>这种差异导致TTH需要更长的等待时间，因此在相同时间内THT更容易出现，胜率比例为2:1。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let simulationRunning = false;
+        let currentGame = 0;
+        let totalGames = 0;
+        let xiaomingWins = 0;
+        let xiaohongWins = 0;
+        let history = [];
+        let chart;
+        let chartData = [];
+        
+        function showTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        function changeMode() {
+            const mode = document.getElementById('mode').value;
+            const gamesInput = document.getElementById('games');
+            const slowModeDisplay = document.getElementById('slowModeDisplay');
+            
+            if (mode === 'slow') {
+                gamesInput.value = '100';
+                slowModeDisplay.style.display = 'block';
+            } else {
+                gamesInput.value = '10000';
+                slowModeDisplay.style.display = 'none';
+            }
+        }
+        
+        function initChart() {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '小明实际获胜率',
+                        data: [],
+                        borderColor: '#2e7d32',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        fill: false,
+                        pointRadius: 1
+                    }, {
+                        label: '理论获胜率 (1/3)',
+                        data: [],
+                        borderColor: '#ff9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        fill: false,
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(0) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '小明获胜率变化图 (理论值: 33.33%)'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateChart() {
+            const total = xiaomingWins + xiaohongWins;
+            if (total === 0) return;
+            
+            const xiaomingRate = xiaomingWins / total;
+            const theoreticalRate = 1/3; // 理论获胜率
+            
+            chartData.push({
+                game: total,
+                xiaoming: xiaomingRate,
+                theoretical: theoreticalRate
+            });
+            
+            // 只保留最近1000个数据点
+            if (chartData.length > 1000) {
+                chartData.shift();
+            }
+            
+            chart.data.labels = chartData.map(d => d.game);
+            chart.data.datasets[0].data = chartData.map(d => d.xiaoming);
+            chart.data.datasets[1].data = chartData.map(d => d.theoretical);
+            chart.update('none');
+        }
+        
+        function updateStats() {
+            document.getElementById('xiaomingWins').textContent = xiaomingWins;
+            document.getElementById('xiaohongWins').textContent = xiaohongWins;
+            document.getElementById('totalGames').textContent = xiaomingWins + xiaohongWins;
+            
+            if (xiaomingWins > 0 && xiaohongWins > 0) {
+                const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+                const divisor = gcd(xiaomingWins, xiaohongWins);
+                const ratio = `${xiaomingWins / divisor}:${xiaohongWins / divisor}`;
+                document.getElementById('winRatio').textContent = ratio;
+            } else {
+                document.getElementById('winRatio').textContent = `${xiaomingWins}:${xiaohongWins}`;
+            }
+        }
+        
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            document.getElementById('progressFill').style.width = percentage + '%';
+        }
+        
+        function simulateGame() {
+            const sequence = [];
+            const targetTTH = [0, 0, 1]; // T=0, H=1
+            const targetTHT = [0, 1, 0];
+            
+            while (true) {
+                const coin = Math.random() < 0.5 ? 0 : 1; // 0=T, 1=H
+                sequence.push(coin);
+                
+                if (sequence.length >= 3) {
+                    const last3 = sequence.slice(-3);
+                    
+                    if (JSON.stringify(last3) === JSON.stringify(targetTTH)) {
+                        return { winner: 'xiaoming', sequence: sequence };
+                    } else if (JSON.stringify(last3) === JSON.stringify(targetTHT)) {
+                        return { winner: 'xiaohong', sequence: sequence };
+                    }
+                }
+            }
+        }
+        
+        function simulateGameWithSteps() {
+            const sequence = [];
+            const steps = [];
+            const targetTTH = [0, 0, 1]; // T=0, H=1
+            const targetTHT = [0, 1, 0];
+            
+            let stepCount = 0;
+            
+            while (true) {
+                stepCount++;
+                const coin = Math.random() < 0.5 ? 0 : 1; // 0=T, 1=H
+                sequence.push(coin);
+                
+                const coinText = coin === 0 ? '反(T)' : '正(H)';
+                const sequenceText = sequence.map(c => c === 0 ? '反' : '正').join('');
+                
+                let checkResult = '';
+                let gameEnded = false;
+                let winner = null;
+                
+                if (sequence.length >= 3) {
+                    const last3 = sequence.slice(-3);
+                    
+                    if (JSON.stringify(last3) === JSON.stringify(targetTTH)) {
+                        checkResult = '✓ 匹配TTH - 小明获胜！';
+                        gameEnded = true;
+                        winner = 'xiaoming';
+                    } else if (JSON.stringify(last3) === JSON.stringify(targetTHT)) {
+                        checkResult = '✓ 匹配THT - 小红获胜！';
+                        gameEnded = true;
+                        winner = 'xiaohong';
+                    } else {
+                        checkResult = '✗ 未匹配目标序列';
+                    }
+                } else {
+                    checkResult = '序列长度不足3，继续...';
+                }
+                
+                steps.push({
+                    step: stepCount,
+                    coin: coinText,
+                    sequence: sequenceText,
+                    check: checkResult,
+                    final: gameEnded
+                });
+                
+                if (gameEnded) {
+                    return { winner: winner, sequence: sequence, steps: steps };
+                }
+            }
+        }
+        
+        function formatSequence(sequence, highlightLast = false) {
+            const symbols = sequence.map(coin => coin === 0 ? '反' : '正');
+            if (highlightLast && sequence.length >= 3) {
+                const beforeLast3 = symbols.slice(0, -3).join('');
+                const last3 = symbols.slice(-3).join('');
+                return beforeLast3 + '<span class="highlight">' + last3 + '</span>';
+            }
+            return symbols.join('');
+        }
+        
+        function addToHistory(result) {
+            const historyDiv = document.getElementById('history');
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.style.background = result.winner === 'xiaoming' ? '#c8e6c9' : '#ffcdd2';
+            item.innerHTML = `游戏 ${history.length + 1}: ${formatSequence(result.sequence)} (${result.winner === 'xiaoming' ? '小明' : '小红'}获胜)`;
+            historyDiv.appendChild(item);
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+            
+            history.push(result);
+        }
+        
+        function displaySequenceSteps(steps) {
+            const stepsDiv = document.getElementById('sequenceSteps');
+            stepsDiv.innerHTML = '';
+            
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item' + (step.final ? ' step-final' : '');
+                stepDiv.innerHTML = `
+                    <span class="step-number">步骤${step.step}:</span> 
+                    <span class="step-coin">${step.coin}</span> → 
+                    <span class="step-sequence">${step.sequence}</span> 
+                    <span class="step-check">${step.check}</span>
+                `;
+                stepsDiv.appendChild(stepDiv);
+            });
+            
+            stepsDiv.scrollTop = stepsDiv.scrollHeight;
+        }
+        
+        async function startSimulation() {
+            if (simulationRunning) return;
+            
+            simulationRunning = true;
+            const mode = document.getElementById('mode').value;
+            totalGames = parseInt(document.getElementById('games').value);
+            currentGame = 0;
+            
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            
+            if (mode === 'slow') {
+                await runSlowSimulation();
+            } else {
+                await runFastSimulation();
+            }
+            
+            simulationRunning = false;
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            updateProgress(totalGames, totalGames);
+        }
+        
+        async function runSlowSimulation() {
+            for (let i = 0; i < totalGames && simulationRunning; i++) {
+                currentGame = i + 1;
+                
+                const result = simulateGameWithSteps();
+                
+                // 更新显示
+                document.getElementById('currentSequence').innerHTML = formatSequence(result.sequence, true);
+                document.getElementById('winner').textContent = 
+                    result.winner === 'xiaoming' ? '小明获胜！(反反正)' : '小红获胜！(反正反)';
+                document.getElementById('winner').className = 
+                    'winner ' + result.winner;
+                document.getElementById('gameProgress').textContent = 
+                    `游戏 ${currentGame}/${totalGames} (序列长度: ${result.sequence.length})`;
+                
+                // 显示步骤
+                displaySequenceSteps(result.steps);
+                
+                // 更新统计
+                if (result.winner === 'xiaoming') {
+                    xiaomingWins++;
+                } else {
+                    xiaohongWins++;
+                }
+                
+                addToHistory(result);
+                updateStats();
+                updateChart();
+                updateProgress(currentGame, totalGames);
+                
+                // 等待一下让用户能看到过程
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
+        async function runFastSimulation() {
+            const batchSize = 100;
+            
+            for (let batch = 0; batch < Math.ceil(totalGames / batchSize) && simulationRunning; batch++) {
+                const currentBatchSize = Math.min(batchSize, totalGames - batch * batchSize);
+                
+                for (let i = 0; i < currentBatchSize; i++) {
+                    const result = simulateGame();
+                    
+                    if (result.winner === 'xiaoming') {
+                        xiaomingWins++;
+                    } else {
+                        xiaohongWins++;
+                    }
+                    
+                    currentGame++;
+                }
+                
+                updateStats();
+                updateChart();
+                updateProgress(currentGame, totalGames);
+                
+                // 让UI有时间更新
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+        }
+        
+        function stopSimulation() {
+            simulationRunning = false;
+        }
+        
+        function resetSimulation() {
+            simulationRunning = false;
+            currentGame = 0;
+            totalGames = 0;
+            xiaomingWins = 0;
+            xiaohongWins = 0;
+            history = [];
+            chartData = [];
+            
+            document.getElementById('currentSequence').innerHTML = '';
+            document.getElementById('winner').textContent = '';
+            document.getElementById('gameProgress').textContent = '';
+            document.getElementById('history').innerHTML = '';
+            document.getElementById('sequenceSteps').innerHTML = '';
+            
+            updateStats();
+            updateProgress(0, 1);
+            
+            if (chart) {
+                chart.data.labels = [];
+                chart.data.datasets[0].data = [];
+                chart.data.datasets[1].data = [];
+                chart.update();
+            }
+            
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            changeMode();
+        });
+    </script>
+</body>
+</html>
