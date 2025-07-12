@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>硬币游戏胜率可视化</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin: 30px 0;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .theory-box {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+        
+        .theory-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            text-align: center;
+            font-size: 1.1em;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .running {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+        
+        .stopped {
+            background: #fdf2e9;
+            color: #e67e22;
+        }
+        
+        .sequence-display {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .sequence-display.active {
+            display: block;
+        }
+        
+        .sequence-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .sequence-row {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        
+        .sequence-label {
+            width: 120px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        
+        .sequence-content {
+            flex: 1;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+        }
+        
+        .coin {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin: 0 2px;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .coin.heads {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+        
+        .coin.tails {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        
+        .coin.highlight {
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.8);
+            transform: scale(1.2);
+            border: 3px solid #ffc107;
+        }
+        
+        .pattern-check {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .pattern-check.xiaoming {
+            background: #e8f5e8;
+            color: #27ae60;
+            border-left: 5px solid #27ae60;
+        }
+        
+        .pattern-check.xiaohong {
+            background: #fdf2e9;
+            color: #e67e22;
+            border-left: 5px solid #e67e22;
+        }
+        
+        .pattern-check.none {
+            background: #f1f2f6;
+            color: #57606f;
+            border-left: 5px solid #57606f;
+        }
+        
+        .game-result {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+        }
+        
+        .game-result.xiaoming-win {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .game-result.xiaohong-win {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .current-sequence {
+            font-size: 1.4em;
+            text-align: center;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>硬币游戏胜率可视化</h1>
+        <div class="subtitle">小明 vs 小红：谁能先完成目标序列？</div>
+        
+        <div class="theory-box">
+            <div class="theory-title">游戏规则</div>
+            <p><strong>小明获胜条件：</strong>先出现"反反正"序列</p>
+            <p><strong>小红获胜条件：</strong>先出现"反正反"序列</p>
+            <p><strong>理论预测：</strong>小明胜率约66.7%，小红胜率约33.3%（2:1比例）</p>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" onclick="startSimulation()">开始模拟</button>
+            <button id="pauseBtn" onclick="pauseSimulation()" disabled>暂停</button>
+            <button id="resetBtn" onclick="resetSimulation()">重置</button>
+            <button id="speedBtn" onclick="toggleSpeed()">加速模式</button>
+        </div>
+        
+        <div class="status" id="status">点击"开始模拟"开始游戏</div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress" style="width: 0%"></div>
+        </div>
+        
+        <div class="sequence-display" id="sequenceDisplay">
+            <div class="sequence-title">当前游戏序列展示</div>
+            <div class="sequence-row">
+                <div class="sequence-label">完整序列:</div>
+                <div class="sequence-content" id="fullSequence"></div>
+            </div>
+            <div class="sequence-row">
+                <div class="sequence-label">最后三次:</div>
+                <div class="sequence-content" id="lastThree"></div>
+            </div>
+            <div class="pattern-check" id="patternCheck">
+                等待抛硬币...
+            </div>
+            <div class="game-result" id="gameResult" style="display: none;"></div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="winRateChart"></canvas>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalGames">0</div>
+                <div class="stat-label">总游戏次数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="xiaomingWins">0</div>
+                <div class="stat-label">小明获胜</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="xiaohongWins">0</div>
+                <div class="stat-label">小红获胜</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="xiaohongRate">0.0%</div>
+                <div class="stat-label">小红胜率</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let totalGames = 0;
+        let xiaomingWins = 0;
+        let xiaohongWins = 0;
+        let isRunning = false;
+        let intervalId = null;
+        let fastMode = false;
+        let maxGames = 10000;
+        
+        // 当前游戏序列显示
+        let currentGameSequence = [];
+        let currentGameStep = 0;
+        
+        // 图表数据
+        let winRateData = [];
+        let gameNumbers = [];
+        
+        // 初始化图表
+        const ctx = document.getElementById('winRateChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: gameNumbers,
+                datasets: [{
+                    label: '小红胜率',
+                    data: winRateData,
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: '理论胜率 (33.3%)',
+                    data: [],
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: '游戏次数'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '胜率 (%)'
+                        },
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // 模拟单次游戏（慢速模式带可视化）
+        function simulateGameSlow(callback) {
+            currentGameSequence = [];
+            currentGameStep = 0;
+            
+            // 显示序列面板
+            document.getElementById('sequenceDisplay').classList.add('active');
+            document.getElementById('gameResult').style.display = 'none';
+            
+            function nextStep() {
+                if (currentGameStep >= 1000) {
+                    // 防止无限循环
+                    callback(1);
+                    return;
+                }
+                
+                // 抛硬币
+                const coin = Math.random() < 0.5 ? 0 : 1;
+                currentGameSequence.push(coin);
+                currentGameStep++;
+                
+                // 更新显示
+                updateSequenceDisplay();
+                
+                // 检查是否有获胜者
+                if (currentGameSequence.length >= 3) {
+                    const last3 = currentGameSequence.slice(-3);
+                    
+                    // 检查小明的获胜条件：反反正 (0 0 1)
+                    if (last3[0] === 0 && last3[1] === 0 && last3[2] === 1) {
+                        showGameResult('xiaoming');
+                        setTimeout(() => callback(1), 1500);
+                        return;
+                    }
+                    
+                    // 检查小红的获胜条件：反正反 (0 1 0)
+                    if (last3[0] === 0 && last3[1] === 1 && last3[2] === 0) {
+                        showGameResult('xiaohong');
+                        setTimeout(() => callback(2), 1500);
+                        return;
+                    }
+                }
+                
+                // 继续下一步
+                setTimeout(nextStep, 800);
+            }
+            
+            nextStep();
+        }
+        
+        // 更新序列显示
+        function updateSequenceDisplay() {
+            const fullSequenceDiv = document.getElementById('fullSequence');
+            const lastThreeDiv = document.getElementById('lastThree');
+            const patternCheckDiv = document.getElementById('patternCheck');
+            
+            // 显示完整序列
+            fullSequenceDiv.innerHTML = currentGameSequence.map((coin, index) => {
+                const isHighlight = index >= currentGameSequence.length - 3;
+                const coinClass = coin === 1 ? 'heads' : 'tails';
+                const highlightClass = isHighlight ? 'highlight' : '';
+                const coinText = coin === 1 ? '正' : '反';
+                return `<span class="coin ${coinClass} ${highlightClass}">${coinText}</span>`;
+            }).join('');
+            
+            // 显示最后三次
+            if (currentGameSequence.length >= 3) {
+                const last3 = currentGameSequence.slice(-3);
+                lastThreeDiv.innerHTML = last3.map((coin, index) => {
+                    const coinClass = coin === 1 ? 'heads' : 'tails';
+                    const coinText = coin === 1 ? '正' : '反';
+                    return `<span class="coin ${coinClass} highlight">${coinText}</span>`;
+                }).join('');
+                
+                // 检查模式
+                const patternText = last3.map(c => c === 1 ? '正' : '反').join('');
+                if (last3[0] === 0 && last3[1] === 0 && last3[2] === 1) {
+                    patternCheckDiv.innerHTML = `当前序列：${patternText} - 🎉 小明获胜！(反反正)`;
+                    patternCheckDiv.className = 'pattern-check xiaoming';
+                } else if (last3[0] === 0 && last3[1] === 1 && last3[2] === 0) {
+                    patternCheckDiv.innerHTML = `当前序列：${patternText} - 🎉 小红获胜！(反正反)`;
+                    patternCheckDiv.className = 'pattern-check xiaohong';
+                } else {
+                    patternCheckDiv.innerHTML = `当前序列：${patternText} - 继续游戏...`;
+                    patternCheckDiv.className = 'pattern-check none';
+                }
+            } else {
+                lastThreeDiv.innerHTML = '<span style="color: #bdc3c7;">等待更多抛硬币...</span>';
+                patternCheckDiv.innerHTML = `已抛硬币 ${currentGameSequence.length} 次，需要至少3次才能判断获胜`;
+                patternCheckDiv.className = 'pattern-check none';
+            }
+        }
+        
+        // 显示游戏结果
+        function showGameResult(winner) {
+            const gameResultDiv = document.getElementById('gameResult');
+            gameResultDiv.style.display = 'block';
+            
+            if (winner === 'xiaoming') {
+                gameResultDiv.innerHTML = '🎉 小明获胜！出现了"反反正"序列';
+                gameResultDiv.className = 'game-result xiaoming-win';
+            } else {
+                gameResultDiv.innerHTML = '🎉 小红获胜！出现了"反正反"序列';
+                gameResultDiv.className = 'game-result xiaohong-win';
+            }
+        }
+        
+        // 模拟单次游戏（快速模式）
+        function simulateGameFast() {
+            let sequence = [];
+            
+            // 初始化前3次抛硬币
+            for (let i = 0; i < 3; i++) {
+                sequence.push(Math.random() < 0.5 ? 0 : 1);
+            }
+            
+            let attempts = 0;
+            const maxAttempts = 1000;
+            
+            while (attempts < maxAttempts) {
+                // 检查小明的获胜条件：反反正 (0 0 1)
+                if (sequence[0] === 0 && sequence[1] === 0 && sequence[2] === 1) {
+                    return 1;
+                }
+                
+                // 检查小红的获胜条件：反正反 (0 1 0)
+                if (sequence[0] === 0 && sequence[1] === 1 && sequence[2] === 0) {
+                    return 2;
+                }
+                
+                // 继续抛硬币
+                sequence[0] = sequence[1];
+                sequence[1] = sequence[2];
+                sequence[2] = Math.random() < 0.5 ? 0 : 1;
+                attempts++;
+            }
+            
+            return 1;
+        }
+        
+        // 更新显示
+        function updateDisplay() {
+            document.getElementById('totalGames').textContent = totalGames;
+            document.getElementById('xiaomingWins').textContent = xiaomingWins;
+            document.getElementById('xiaohongWins').textContent = xiaohongWins;
+            
+            const xiaohongRate = totalGames > 0 ? (xiaohongWins / totalGames * 100) : 0;
+            document.getElementById('xiaohongRate').textContent = xiaohongRate.toFixed(1) + '%';
+            
+            // 更新进度条
+            const progress = (totalGames / maxGames) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+            
+            // 更新图表
+            if (totalGames > 0 && totalGames % (fastMode ? 100 : 10) === 0) {
+                gameNumbers.push(totalGames);
+                winRateData.push(xiaohongRate);
+                
+                // 添加理论胜率线
+                if (chart.data.datasets[1].data.length < gameNumbers.length) {
+                    chart.data.datasets[1].data.push(33.3);
+                }
+                
+                chart.update('none');
+            }
+        }
+        
+        // 开始模拟
+        function startSimulation() {
+            if (totalGames >= maxGames) {
+                resetSimulation();
+            }
+            
+            isRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            document.getElementById('status').textContent = '模拟进行中...';
+            document.getElementById('status').className = 'status running';
+            
+            if (fastMode) {
+                // 快速模式
+                const batchSize = 100;
+                const interval = 50;
+                
+                intervalId = setInterval(() => {
+                    for (let i = 0; i < batchSize && totalGames < maxGames; i++) {
+                        const winner = simulateGameFast();
+                        totalGames++;
+                        
+                        if (winner === 1) {
+                            xiaomingWins++;
+                        } else {
+                            xiaohongWins++;
+                        }
+                    }
+                    
+                    updateDisplay();
+                    
+                    if (totalGames >= maxGames) {
+                        pauseSimulation();
+                        document.getElementById('status').textContent = '模拟完成！';
+                        document.getElementById('status').className = 'status stopped';
+                    }
+                }, interval);
+            } else {
+                // 慢速模式 - 逐步显示
+                runSlowSimulation();
+            }
+        }
+        
+        // 运行慢速模拟
+        function runSlowSimulation() {
+            if (totalGames >= maxGames || !isRunning) {
+                pauseSimulation();
+                if (totalGames >= maxGames) {
+                    document.getElementById('status').textContent = '模拟完成！';
+                    document.getElementById('status').className = 'status stopped';
+                }
+                return;
+            }
+            
+            simulateGameSlow((winner) => {
+                if (!isRunning) return;
+                
+                totalGames++;
+                if (winner === 1) {
+                    xiaomingWins++;
+                } else {
+                    xiaohongWins++;
+                }
+                
+                updateDisplay();
+                
+                // 继续下一局
+                setTimeout(() => {
+                    runSlowSimulation();
+                }, 1000);
+            });
+        }
+        
+        // 暂停模拟
+        function pauseSimulation() {
+            isRunning = false;
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+            document.getElementById('status').textContent = '模拟已暂停';
+            document.getElementById('status').className = 'status stopped';
+        }
+        
+        // 重置模拟
+        function resetSimulation() {
+            pauseSimulation();
+            totalGames = 0;
+            xiaomingWins = 0;
+            xiaohongWins = 0;
+            winRateData = [];
+            gameNumbers = [];
+            currentGameSequence = [];
+            currentGameStep = 0;
+            
+            // 隐藏序列显示
+            document.getElementById('sequenceDisplay').classList.remove('active');
+            
+            chart.data.labels = gameNumbers;
+            chart.data.datasets[0].data = winRateData;
+            chart.data.datasets[1].data = [];
+            chart.update();
+            
+            updateDisplay();
+            document.getElementById('status').textContent = '已重置，点击"开始模拟"开始游戏';
+            document.getElementById('status').className = 'status';
+        }
+        
+        // 切换速度模式
+        function toggleSpeed() {
+            fastMode = !fastMode;
+            document.getElementById('speedBtn').textContent = fastMode ? '慢速模式' : '快速模式';
+            
+            if (fastMode) {
+                // 切换到快速模式时隐藏序列显示
+                document.getElementById('sequenceDisplay').classList.remove('active');
+            }
+            
+            if (isRunning) {
+                pauseSimulation();
+                setTimeout(startSimulation, 100);
+            }
+        }
+        
+        // 初始化显示
+        updateDisplay();
+    </script>
+</body>
+</html>
