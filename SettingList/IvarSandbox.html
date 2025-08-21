@@ -129,12 +129,12 @@
         <div id="controls">
             <button onclick="toggleAnimation()">⏸️ 暂停</button>
             <button onclick="resetAnimation()">🔄 重置</button>
-            <label>速度: <input type="range" id="speed" min="0.001" max="1" value="1" step="0.001" oninput="updateSpeed()"></label>
-            <label>视角: <input type="range" id="view" min="0" max="360" value="45" oninput="updateView()"></label>
+            <label>速度: <input type="range" id="speed" min="0.001" max="10" value="0.001" step="0.001" oninput="updateSpeed()"></label>
+            <label>水平: <input type="range" id="horizontal" min="0" max="360" value="45" oninput="updateHorizontal()"></label>
+            <label>俯仰: <input type="range" id="elevation" min="-90" max="90" value="30" oninput="updateElevation()"></label>
+            <label>缩放: <input type="range" id="zoom" min="100" max="2000" value="800" oninput="updateZoom()"></label>
             <button onclick="toggleViewMode()">🌍 全局视角</button>
             <button onclick="toggleOrbitPaths()">🛤️ 轨道</button>
-            <button onclick="zoomIn()">🔍 放大</button>
-            <button onclick="zoomOut()">🔍 缩小</button>
         </div>
     </div>
 
@@ -168,6 +168,8 @@
         let planetAngle = 0;
         let viewMode = 'global'; // 'global' 或 'planet'
         let cameraDistance = 800;
+        let cameraAngle = 45; // 水平角度
+        let cameraElevation = 30; // 俯仰角度
         
         init();
         animate();
@@ -280,8 +282,8 @@
             ambientLight = new THREE.AmbientLight(0x404040, 0.1);
             scene.add(ambientLight);
             
-            // 添加星空背景
-            addStarField();
+            // 添加星空背景 - 已删除
+            // addStarField();
             
             // 窗口大小调整
             window.addEventListener('resize', onWindowResize);
@@ -400,18 +402,20 @@
             shadowCone.scale.set(shadowRadius / PLANET_RADIUS, 1, shadowRadius / PLANET_RADIUS);
         }
         
-        function calculateShadowRadius(planetDistance) {
-            // 使用实际的天体物理公式计算本影半径
-            // 本影半径 = 行星半径 × (1 - 距离/本影锥长度)
-            const realPlanetDistance = planetDistance * SCALE; // 实际距离 km
-            const realPlanetRadius = PLANET_RADIUS * SCALE; // 实际行星半径 km
-            const realMoonOrbitRadius = MOON_ORBIT_R * SCALE; // 实际卫星轨道半径 km
-            const realShadowConeLength = SHADOW_CONE_LENGTH * SCALE; // 实际本影锥长度 km
+        function calculateShadowRadius(planetDistanceAU) {
+            // 使用实际的几何计算
+            const starRadius = 1099206; // km
+            const planetRadius = 80000; // km
+            const moonOrbitRadius = 2250000; // km
+            const starDistance = planetDistanceAU * 149597870.7; // AU转km
             
-            // 本影半径 = 行星半径 × (本影锥长度 - 卫星轨道距离) / 本影锥长度
-            const shadowRadius = realPlanetRadius * (realShadowConeLength - realMoonOrbitRadius) / realShadowConeLength;
+            // 本影锥长度计算
+            const shadowConeLength = planetRadius * starDistance / (starRadius - planetRadius);
             
-            return Math.max(0, shadowRadius); // 返回实际半径 km
+            // 在卫星轨道处的本影半径
+            const shadowRadius = planetRadius * (1 - moonOrbitRadius / shadowConeLength);
+            
+            return Math.max(0, shadowRadius); // 确保不为负数
         }
         
         function updateUI() {
@@ -424,9 +428,10 @@
             const isNearPerihelion = realPlanetDistance < 3.5; // 近日点区域
             const phase = isNearPerihelion ? "暗年期" : "光年期";
             
-            // 计算日食状态
-            const shadowRadius = calculateShadowRadius(realPlanetDistance * 149597870.7); // 传入km
-            const isEclipse = shadowRadius > (MOON_RADIUS * SCALE); // 比较实际半径
+            // 计算日食状态 - 修正计算
+            const shadowRadius = calculateShadowRadius(realPlanetDistance);
+            const moonRadius = 7321; // km
+            const isEclipse = shadowRadius > moonRadius;
             
             // 计算卫星与阴影锥的相对位置
             const moonRelativeAngle = moonAngle * 180 / Math.PI % 360;
@@ -448,7 +453,7 @@
             document.getElementById('moon-pos').textContent = `卫星位置: ${moonRelativeAngle.toFixed(1)}°`;
             document.getElementById('eclipse-status').textContent = `日食状态: ${eclipseStatus}`;
             document.getElementById('eclipse-status').className = eclipseStatus.includes('暗潮') ? 'status eclipse-warning' : 'status';
-            document.getElementById('shadow-size').textContent = `本影半径: ${(shadowRadius / 1000).toFixed(0)} km`;
+            document.getElementById('shadow-size').textContent = `本影半径: ${shadowRadius.toFixed(0)} km`;
             document.getElementById('time-elapsed').textContent = `时间: ${ivarYear.toFixed(1)} 伊瓦尔年`;
             
             // 显示/隐藏阴影锥
@@ -471,63 +476,53 @@
         }
         
         function updateView() {
-            const angle = parseInt(document.getElementById('view').value);
-            
+            updateCamera();
+        }
+        
+        function updateCamera() {
             if (viewMode === 'global') {
-                camera.position.x = cameraDistance * Math.cos(angle * Math.PI / 180);
-                camera.position.z = cameraDistance * Math.sin(angle * Math.PI / 180);
-                camera.position.y = cameraDistance * 0.3;
+                // 全局视角：球坐标系
+                const phi = cameraAngle * Math.PI / 180; // 水平角度
+                const theta = (90 - cameraElevation) * Math.PI / 180; // 俯仰角度转换为极角
+                
+                camera.position.x = cameraDistance * Math.sin(theta) * Math.cos(phi);
+                camera.position.y = cameraDistance * Math.cos(theta);
+                camera.position.z = cameraDistance * Math.sin(theta) * Math.sin(phi);
                 camera.lookAt(0, 0, 0);
-            } else if (viewMode === 'planet') {
-                // 行星视角也能调整角度
+            } else {
+                // 行星视角：相机相对于行星的位置
                 const planetPos = planet.position;
-                const offset = 50;
-                camera.position.set(
-                    planetPos.x + offset * Math.cos(angle * Math.PI / 180),
-                    planetPos.y + 20,
-                    planetPos.z + offset * Math.sin(angle * Math.PI / 180)
-                );
+                const phi = cameraAngle * Math.PI / 180;
+                const theta = (90 - cameraElevation) * Math.PI / 180;
+                const relativeDistance = cameraDistance * 0.1; // 行星视角距离较近
+                
+                camera.position.x = planetPos.x + relativeDistance * Math.sin(theta) * Math.cos(phi);
+                camera.position.y = planetPos.y + relativeDistance * Math.cos(theta);
+                camera.position.z = planetPos.z + relativeDistance * Math.sin(theta) * Math.sin(phi);
                 camera.lookAt(planetPos);
             }
         }
         
-        function updateCamera() {
-            if (viewMode === 'planet') {
-                // 行星视角：使用当前滑块角度
-                const angle = parseInt(document.getElementById('view').value);
-                const planetPos = planet.position;
-                const offset = 50;
-                camera.position.set(
-                    planetPos.x + offset * Math.cos(angle * Math.PI / 180),
-                    planetPos.y + 20,
-                    planetPos.z + offset * Math.sin(angle * Math.PI / 180)
-                );
-                camera.lookAt(planetPos);
-            }
+        function updateHorizontal() {
+            cameraAngle = parseFloat(document.getElementById('horizontal').value);
+            updateCamera();
+        }
+        
+        function updateElevation() {
+            cameraElevation = parseFloat(document.getElementById('elevation').value);
+            updateCamera();
+        }
+        
+        function updateZoom() {
+            cameraDistance = parseFloat(document.getElementById('zoom').value);
+            updateCamera();
         }
         
         function toggleViewMode() {
             viewMode = viewMode === 'global' ? 'planet' : 'global';
             const button = document.querySelector('button[onclick="toggleViewMode()"]');
             button.textContent = viewMode === 'global' ? '🌍 全局视角' : '🪐 行星视角';
-            
-            if (viewMode === 'global') {
-                updateView();
-            }
-        }
-        
-        function zoomIn() {
-            cameraDistance *= 0.8;
-            if (viewMode === 'global') {
-                updateView();
-            }
-        }
-        
-        function zoomOut() {
-            cameraDistance *= 1.25;
-            if (viewMode === 'global') {
-                updateView();
-            }
+            updateCamera();
         }
         
         function createMoonTexture() {
