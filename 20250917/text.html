@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swiper轮播图横幅</title>
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* 横幅区域样式 */
+        .banner {
+            position: relative;
+            height: 100vh;
+            min-height: 600px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Swiper容器 */
+        .swiper-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .swiper-slide {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        /* 轮播图片样式 */
+        .slide-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .swiper-slide:hover .slide-image {
+            transform: scale(1.05);
+        }
+
+        /* 半透明遮罩 */
+        .slide-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                135deg, 
+                rgba(0, 0, 0, 0.6) 0%, 
+                rgba(0, 0, 0, 0.3) 50%, 
+                rgba(0, 0, 0, 0.5) 100%
+            );
+            z-index: 2;
+            transition: opacity 0.5s ease;
+        }
+
+        /* 横幅内容 */
+        .banner-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            color: white;
+            max-width: 800px;
+            padding: 0 20px;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .banner-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.7);
+            background: linear-gradient(135deg, #fff, #f0f0f0);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: textGlow 3s ease-in-out infinite alternate;
+        }
+
+        .banner-content p {
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            opacity: 0.95;
+            text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.6);
+            line-height: 1.6;
+        }
+
+        /* 按钮样式 */
+        .btn-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+
+        .btn-cta:active {
+            transform: translateY(-1px);
+        }
+
+        /* Swiper分页器样式 */
+        .swiper-pagination {
+            bottom: 30px !important;
+            z-index: 15;
+        }
+
+        .swiper-pagination-bullet {
+            width: 12px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 1;
+            margin: 0 8px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .swiper-pagination-bullet-active {
+            background: white;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            transform: scale(1.2);
+        }
+
+        /* Swiper导航箭头 */
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 15;
+        }
+
+        .swiper-button-next:hover,
+        .swiper-button-prev:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .swiper-button-next::after,
+        .swiper-button-prev::after {
+            font-size: 20px;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes textGlow {
+            0% {
+                text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.7);
+            }
+            100% {
+                text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .banner-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .banner-content p {
+                font-size: 1.2rem;
+            }
+            
+            .btn-cta {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .banner {
+                min-height: 500px;
+            }
+            
+            .banner-content h1 {
+                font-size: 2rem;
+            }
+            
+            .banner-content p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 横幅区域 -->
+    <section class="banner">
+        <!-- Swiper轮播图 -->
+        <div class="swiper-container">
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="现代办公" class="slide-image">
+                    <div class="slide-overlay"></div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://images.unsplash.com/photo-1560472355-536de3962603?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2126&q=80" alt="团队合作" class="slide-image">
+                    <div class="slide-overlay"></div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://images.unsplash.com/photo-1559136555-9303baea8ebd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="商业成功" class="slide-image">
+                    <div class="slide-overlay"></div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="都市风光" class="slide-image">
+                    <div class="slide-overlay"></div>
+                </div>
+                <div class="swiper-slide">
+                    <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80" alt="创新科技" class="slide-image">
+                    <div class="slide-overlay"></div>
+                </div>
+            </div>
+            
+            <!-- 分页器 -->
+            <div class="swiper-pagination"></div>
+            
+            <!-- 导航箭头 -->
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+        </div>
+
+        <!-- 横幅内容 -->
+        <div class="banner-content">
+            <h1>欢迎来到我们的网站</h1>
+            <p>专业的服务，优质的体验</p>
+            <button class="btn-cta">立即开始</button>
+        </div>
+    </section>
+
+    <!-- Swiper JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js"></script>
+    <script>
+        // 初始化Swiper
+        const swiper = new Swiper('.swiper-container', {
+            // 基本配置
+            speed: 1000,                    // 切换速度1000毫秒
+            loop: true,                     // 启用循环模式
+            
+            // 自动播放配置
+            autoplay: {
+                delay: 5000,                // 每5秒自动切换
+                stopOnLastSlide: false,     // 不在最后一张停止
+                disableOnInteraction: true, // 用户交互后停止自动播放
+                pauseOnMouseEnter: true,    // 鼠标悬停时暂停
+            },
+            
+            // 切换效果
+            effect: 'slide',                // 滑动效果
+            
+            // 分页器
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,            // 可点击
+                bulletActiveClass: 'swiper-pagination-bullet-active',
+            },
+            
+            // 导航箭头
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            
+            // 触摸滑动
+            touchRatio: 1,
+            touchAngle: 45,
+            grabCursor: true,
+            
+            // 键盘控制
+            keyboard: {
+                enabled: true,
+                onlyInViewport: true,
+            },
+            
+            // 鼠标滚轮控制
+            mousewheel: {
+                invert: false,
+            },
+            
+            // 响应式断点
+            breakpoints: {
+                320: {
+                    spaceBetween: 10,
+                },
+                768: {
+                    spaceBetween: 20,
+                },
+                1024: {
+                    spaceBetween: 30,
+                },
+            },
+            
+            // 事件回调
+            on: {
+                init: function () {
+                    console.log('Swiper初始化完成');
+                },
+                slideChange: function () {
+                    // 可以在这里添加切换时的自定义效果
+                    console.log('当前幻灯片索引:', this.activeIndex);
+                },
+                autoplayStop: function () {
+                    console.log('自动播放已停止');
+                }
+            }
+        });
+
+        // 按钮点击事件
+        document.querySelector('.btn-cta').addEventListener('click', function() {
+            alert('欢迎开始您的旅程！');
+            // 这里可以添加实际的业务逻辑
+        });
+
+        // 可选：添加键盘快捷键控制
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                swiper.slidePrev();
+            } else if (e.key === 'ArrowRight') {
+                swiper.slideNext();
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                if (swiper.autoplay.running) {
+                    swiper.autoplay.stop();
+                } else {
+                    swiper.autoplay.start();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
