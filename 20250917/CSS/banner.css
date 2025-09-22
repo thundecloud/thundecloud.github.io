@@ -89,32 +89,6 @@
     line-height: 1.6;
 }
 
-/* 按钮样式 */
-.btn-cta {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 15px 40px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.btn-cta:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-}
-
-.btn-cta:active {
-    transform: translateY(-1px);
-}
-
 /* Swiper分页器样式 */
 .swiper-pagination {
     bottom: 30px !important;
@@ -192,10 +166,6 @@
         font-size: 1.2rem;
     }
     
-    .btn-cta {
-        padding: 12px 30px;
-        font-size: 1rem;
-    }
 }
 
 @media (max-width: 480px) {
