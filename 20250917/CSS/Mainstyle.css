@@ -14,7 +14,7 @@ body {
 
 /* 容器样式 */
 .container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -217,6 +217,7 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 2rem;
     margin-bottom: 2rem;
+    margin-left: 10%;
 }
 
 .footer-column h4 {
@@ -249,18 +250,6 @@ body {
 }
 
 /* 社交链接样式 */
-.social-links {
-    display: flex;
-    gap: 1rem;
-}
-
-.social-links a {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background-color: #34495e;
-    border-radius: 4px;
-    transition: background-color 0.3s;
-}
 
 .social-links a:hover {
     background-color: #007bff;

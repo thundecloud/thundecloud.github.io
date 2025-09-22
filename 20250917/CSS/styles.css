@@ -1,0 +1,12 @@
+.region {
+  width: 50px;
+  height: 50px;
+  background-color: transparent;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+
+.region:hover {
+  border-color: rgba(255, 0, 0, 0.7); /* 悬浮时显示红色边框 */
+}
