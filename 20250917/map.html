@@ -194,6 +194,20 @@
     </div>
   </footer>
 
+  <script>
+    // 关键：在imageMapResize之前保存原始坐标
+    const originalCoords = [];
+    document.querySelectorAll('area').forEach(area => {
+      originalCoords.push({
+        element: area,
+        coords: area.getAttribute('coords'),
+        shape: area.getAttribute('shape'),
+        href: area.getAttribute('href'),
+        target: area.getAttribute('target')
+      });
+    });
+  </script>
+
   <!-- 图像映射响应式库 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/image-map-resizer/1.0.10/js/imageMapResizer.min.js"></script>
   
@@ -202,9 +216,8 @@
     function initializeMapMarkers() {
       const mapContainer = document.querySelector('.map-container');
       const mapImage = document.getElementById('mainMap');
-      const areas = document.querySelectorAll('area');
       
-      if (!mapImage || areas.length === 0) return;
+      if (!mapImage || originalCoords.length === 0) return;
 
       // 创建图例
       createMapLegend(mapContainer);
@@ -217,8 +230,8 @@
       }
 
       function createAllMarkers() {
-        areas.forEach((area, index) => {
-          createMarker(area, mapImage, mapContainer, index);
+        originalCoords.forEach((areaData, index) => {
+          createMarker(areaData, mapImage, mapContainer, index);
         });
       }
 
@@ -238,11 +251,10 @@
     }
 
     // 创建单个标记
-    function createMarker(area, mapImage, container, index) {
-      const shape = area.getAttribute('shape');
-      const coords = area.getAttribute('coords').split(',').map(Number);
+    function createMarker(areaData, mapImage, container, index) {
+      const coords = areaData.coords.split(',').map(s => Number(s.trim()));
       
-      if (shape === 'circle') {
+      if (areaData.shape === 'circle' && coords.length === 3) {
         const marker = document.createElement('div');
         marker.className = 'clickable-marker';
         marker.dataset.index = index;
@@ -254,11 +266,11 @@
         
         marker.addEventListener('click', function(e) {
           e.preventDefault();
-          window.open(area.href, area.target || '_blank');
+          window.open(areaData.href, areaData.target || '_blank');
         });
         
         marker.addEventListener('mouseenter', function(e) {
-          showTooltip(e, area, container);
+          showTooltip(e, areaData, container, marker);
         });
         
         marker.addEventListener('mouseleave', function() {
@@ -302,7 +314,7 @@
     }
 
     // 显示提示信息
-    function showTooltip(event, area, container) {
+    function showTooltip(event, areaData, container, marker) {
       let tooltip = container.querySelector('.marker-tooltip');
       
       if (!tooltip) {
@@ -311,22 +323,18 @@
         container.appendChild(tooltip);
       }
       
-      const href = area.href;
+      const href = areaData.href;
       const match = href.match(/Place(\d+)\.html/);
       const placeNumber = match ? match[1] : '未知';
       
       tooltip.textContent = `地点 ${placeNumber} - 点击查看详情`;
       
-      // 使用marker相对于container的位置，而不是鼠标位置
-      const marker = event.currentTarget;
-      const markerRect = marker.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
+      // 使用marker的offset位置
+      const tooltipLeft = marker.offsetLeft + marker.offsetWidth / 2 + 10;
+      const tooltipTop = marker.offsetTop - 10;
       
-      const relativeLeft = markerRect.left - containerRect.left;
-      const relativeTop = markerRect.top - containerRect.top;
-      
-      tooltip.style.left = (relativeLeft + markerRect.width / 2 + 10) + 'px';
-      tooltip.style.top = (relativeTop - 10) + 'px';
+      tooltip.style.left = tooltipLeft + 'px';
+      tooltip.style.top = tooltipTop + 'px';
       
       setTimeout(() => {
         tooltip.classList.add('show');
