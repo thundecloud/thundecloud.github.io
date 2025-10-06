@@ -299,15 +299,39 @@
     // 创建单个标记
     function createMarker(area, mapImage, container, index) {
       const shape = area.getAttribute('shape');
-      const coords = area.getAttribute('coords').split(',').map(Number);
+      const coordsStr = area.getAttribute('coords');
       
-      if (shape === 'circle') {
+      console.log(`--- 创建标记 ${index} ---`);
+      console.log('shape:', shape);
+      console.log('coords字符串:', coordsStr);
+      console.log('coords类型:', typeof coordsStr);
+      
+      if (!coordsStr) {
+        console.error(`标记${index}: coords为空!`);
+        return;
+      }
+      
+      const coords = coordsStr.split(',').map(s => {
+        const num = Number(s.trim());
+        console.log(`解析 "${s.trim()}" -> ${num}`);
+        return num;
+      });
+      
+      console.log('解析后的coords数组:', coords);
+      
+      if (shape === 'circle' && coords.length === 3) {
         const marker = document.createElement('div');
         marker.className = 'clickable-marker';
         marker.dataset.index = index;
         marker.dataset.centerX = coords[0];
         marker.dataset.centerY = coords[1];
         marker.dataset.radius = coords[2];
+        
+        console.log('设置dataset:', {
+          centerX: marker.dataset.centerX,
+          centerY: marker.dataset.centerY,
+          radius: marker.dataset.radius
+        });
         
         updateMarkerStyle(marker, mapImage);
         
@@ -328,6 +352,9 @@
         });
         
         container.appendChild(marker);
+        console.log(`标记${index}创建完成`);
+      } else {
+        console.error(`标记${index}: shape不是circle或coords长度错误`, shape, coords.length);
       }
     }
 
