@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>探索地图</title>
+  <title>探索地图 - 调试版</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./CSS/styles.css">
   <link rel="stylesheet" href="./CSS/Mainstyle.css">
@@ -95,6 +95,34 @@
       border: 2px solid #3b82f6;
       border-radius: 50%;
       background-color: rgba(59, 130, 246, 0.2);
+    }
+
+    /* 调试信息面板 */
+    .debug-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      max-width: 400px;
+      z-index: 10000;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .debug-panel h3 {
+      color: #ff0;
+      margin-bottom: 10px;
+    }
+
+    .debug-panel .debug-item {
+      margin: 5px 0;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
     }
   </style>
 </head>
@@ -194,15 +222,35 @@
     </div>
   </footer>
 
+  <!-- 调试信息面板 -->
+  <div class="debug-panel" id="debugPanel">
+    <h3>🐛 调试信息 (按F12查看详细日志)</h3>
+    <div id="debugContent">等待悬停标记...</div>
+  </div>
+
   <!-- 图像映射响应式库 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/image-map-resizer/1.0.10/js/imageMapResizer.min.js"></script>
   
   <script>
+    console.log('========== 地图调试开始 ==========');
+    console.log('当前URL:', window.location.href);
+    console.log('页面加载时间:', new Date().toLocaleString());
+    
     // 初始化地图标记
     function initializeMapMarkers() {
       const mapContainer = document.querySelector('.map-container');
       const mapImage = document.getElementById('mainMap');
       const areas = document.querySelectorAll('area');
+      
+      console.log('=== 初始化信息 ===');
+      console.log('容器:', mapContainer);
+      console.log('图片:', mapImage);
+      console.log('区域数量:', areas.length);
+      
+      // 输出容器的CSS定位信息
+      const containerStyle = window.getComputedStyle(mapContainer);
+      console.log('容器定位方式:', containerStyle.position);
+      console.log('容器transform:', containerStyle.transform);
       
       if (!mapImage || areas.length === 0) return;
 
@@ -211,15 +259,21 @@
 
       // 等待图片完全加载
       if (mapImage.complete) {
+        console.log('图片已加载完成');
         createAllMarkers();
       } else {
-        mapImage.addEventListener('load', createAllMarkers);
+        mapImage.addEventListener('load', function() {
+          console.log('图片加载完成事件触发');
+          createAllMarkers();
+        });
       }
 
       function createAllMarkers() {
+        console.log('=== 开始创建标记 ===');
         areas.forEach((area, index) => {
           createMarker(area, mapImage, mapContainer, index);
         });
+        console.log('所有标记创建完成');
       }
 
       // 监听窗口大小变化
@@ -227,6 +281,7 @@
       window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function() {
+          console.log('窗口大小改变，更新标记位置');
           updateMarkerPositions(mapImage);
         }, 250);
       });
@@ -234,6 +289,7 @@
       // 初始化响应式图像映射
       if (typeof imageMapResize === 'function') {
         imageMapResize();
+        console.log('imageMapResize 已调用');
       }
     }
 
@@ -254,11 +310,14 @@
         
         marker.addEventListener('click', function(e) {
           e.preventDefault();
+          console.log('点击标记:', area.href);
           window.open(area.href, area.target || '_blank');
         });
         
         marker.addEventListener('mouseenter', function(e) {
-          showTooltip(e, area, container);
+          console.log('\n========== 悬停事件触发 ==========');
+          console.log('标记索引:', index);
+          showTooltip(e, area, container, marker);
         });
         
         marker.addEventListener('mouseleave', function() {
@@ -302,13 +361,16 @@
     }
 
     // 显示提示信息
-    function showTooltip(event, area, container) {
+    function showTooltip(event, area, container, marker) {
+      console.log('=== 显示提示框 ===');
+      
       let tooltip = container.querySelector('.marker-tooltip');
       
       if (!tooltip) {
         tooltip = document.createElement('div');
         tooltip.className = 'marker-tooltip';
         container.appendChild(tooltip);
+        console.log('创建新的tooltip元素');
       }
       
       const href = area.href;
@@ -317,16 +379,118 @@
       
       tooltip.textContent = `地点 ${placeNumber} - 点击查看详情`;
       
-      // 使用marker相对于container的位置，而不是鼠标位置
-      const marker = event.currentTarget;
+      // 获取各种位置信息
       const markerRect = marker.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
+      const containerStyle = window.getComputedStyle(container);
       
+      // 计算相对位置
       const relativeLeft = markerRect.left - containerRect.left;
       const relativeTop = markerRect.top - containerRect.top;
       
-      tooltip.style.left = (relativeLeft + markerRect.width / 2 + 10) + 'px';
-      tooltip.style.top = (relativeTop - 10) + 'px';
+      // 方法1: 使用marker相对位置
+      const method1Left = relativeLeft + markerRect.width / 2 + 10;
+      const method1Top = relativeTop - 10;
+      
+      // 方法2: 直接使用marker的style属性
+      const markerLeft = parseFloat(marker.style.left);
+      const markerTop = parseFloat(marker.style.top);
+      const markerWidth = parseFloat(marker.style.width);
+      const method2Left = markerLeft + markerWidth / 2 + 10;
+      const method2Top = markerTop - 10;
+      
+      // 方法3: 使用鼠标位置
+      const method3Left = event.clientX - containerRect.left + 15;
+      const method3Top = event.clientY - containerRect.top - 30;
+      
+      console.log('--- 鼠标事件信息 ---');
+      console.log('clientX:', event.clientX);
+      console.log('clientY:', event.clientY);
+      console.log('pageX:', event.pageX);
+      console.log('pageY:', event.pageY);
+      
+      console.log('--- Marker信息 ---');
+      console.log('markerRect:', {
+        left: markerRect.left,
+        top: markerRect.top,
+        width: markerRect.width,
+        height: markerRect.height
+      });
+      console.log('marker.style.left:', marker.style.left);
+      console.log('marker.style.top:', marker.style.top);
+      console.log('marker.style.width:', marker.style.width);
+      
+      console.log('--- Container信息 ---');
+      console.log('containerRect:', {
+        left: containerRect.left,
+        top: containerRect.top,
+        width: containerRect.width,
+        height: containerRect.height
+      });
+      console.log('container.position:', containerStyle.position);
+      console.log('container.transform:', containerStyle.transform);
+      console.log('container.offsetLeft:', container.offsetLeft);
+      console.log('container.offsetTop:', container.offsetTop);
+      
+      console.log('--- 页面滚动信息 ---');
+      console.log('window.scrollX:', window.scrollX);
+      console.log('window.scrollY:', window.scrollY);
+      console.log('window.pageXOffset:', window.pageXOffset);
+      console.log('window.pageYOffset:', window.pageYOffset);
+      
+      console.log('--- 三种计算方法的结果 ---');
+      console.log('方法1 (marker相对位置):', { left: method1Left, top: method1Top });
+      console.log('方法2 (marker style):', { left: method2Left, top: method2Top });
+      console.log('方法3 (鼠标位置):', { left: method3Left, top: method3Top });
+      
+      console.log('--- 相对位置计算 ---');
+      console.log('relativeLeft:', relativeLeft);
+      console.log('relativeTop:', relativeTop);
+      
+      // 方法4: 使用offsetTop/offsetLeft（最可靠）
+      const method4Left = marker.offsetLeft + marker.offsetWidth / 2 + 10;
+      const method4Top = marker.offsetTop - 10;
+      console.log('方法4 (offset):', { left: method4Left, top: method4Top });
+      console.log('marker.offsetLeft:', marker.offsetLeft);
+      console.log('marker.offsetTop:', marker.offsetTop);
+      console.log('marker.offsetWidth:', marker.offsetWidth);
+      console.log('marker.offsetHeight:', marker.offsetHeight);
+      
+      // 检查父元素链
+      console.log('--- 父元素链检查 ---');
+      let parent = marker.parentElement;
+      let level = 0;
+      while (parent && level < 5) {
+        const pStyle = window.getComputedStyle(parent);
+        console.log(`父元素${level}:`, {
+          tagName: parent.tagName,
+          className: parent.className,
+          position: pStyle.position,
+          transform: pStyle.transform,
+          offsetTop: parent.offsetTop,
+          offsetLeft: parent.offsetLeft
+        });
+        parent = parent.parentElement;
+        level++;
+      }
+      
+      // 使用方法4（最可靠的方法）
+      tooltip.style.left = method4Left + 'px';
+      tooltip.style.top = method4Top + 'px';
+      
+      console.log('=== 最终设置的tooltip位置 ===');
+      console.log('tooltip.style.left:', tooltip.style.left);
+      console.log('tooltip.style.top:', tooltip.style.top);
+      
+      // 更新调试面板
+      updateDebugPanel({
+        placeNumber,
+        method1: { left: method1Left.toFixed(2), top: method1Top.toFixed(2) },
+        method2: { left: method2Left.toFixed(2), top: method2Top.toFixed(2) },
+        method3: { left: method3Left.toFixed(2), top: method3Top.toFixed(2) },
+        containerPos: containerStyle.position,
+        scrollY: window.scrollY.toFixed(2)
+      });
       
       setTimeout(() => {
         tooltip.classList.add('show');
@@ -354,12 +518,27 @@
       container.appendChild(legend);
     }
 
+    // 更新调试面板
+    function updateDebugPanel(data) {
+      const debugContent = document.getElementById('debugContent');
+      debugContent.innerHTML = `
+        <div class="debug-item"><strong>地点:</strong> ${data.placeNumber}</div>
+        <div class="debug-item"><strong>方法1:</strong> left=${data.method1.left}, top=${data.method1.top}</div>
+        <div class="debug-item"><strong>方法2:</strong> left=${data.method2.left}, top=${data.method2.top}</div>
+        <div class="debug-item"><strong>方法3:</strong> left=${data.method3.left}, top=${data.method3.top}</div>
+        <div class="debug-item"><strong>容器定位:</strong> ${data.containerPos}</div>
+        <div class="debug-item"><strong>页面滚动:</strong> ${data.scrollY}px</div>
+      `;
+    }
+
     // 页面加载完成后初始化
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeMapMarkers);
     } else {
       initializeMapMarkers();
     }
+    
+    console.log('========== 脚本加载完成 ==========');
   </script>
 </body>
 </html>
