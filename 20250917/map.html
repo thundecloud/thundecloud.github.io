@@ -315,11 +315,18 @@
       const match = href.match(/Place(\d+)\.html/);
       const placeNumber = match ? match[1] : '未知';
       
-      tooltip.textContent = `点击查看详情`;
+      tooltip.textContent = `地点 ${placeNumber} - 点击查看详情`;
       
-      const rect = container.getBoundingClientRect();
-      tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
-      tooltip.style.top = (event.clientY - rect.top - 30) + 'px';
+      // 使用marker相对于container的位置，而不是鼠标位置
+      const marker = event.currentTarget;
+      const markerRect = marker.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      const relativeLeft = markerRect.left - containerRect.left;
+      const relativeTop = markerRect.top - containerRect.top;
+      
+      tooltip.style.left = (relativeLeft + markerRect.width / 2 + 10) + 'px';
+      tooltip.style.top = (relativeTop - 10) + 'px';
       
       setTimeout(() => {
         tooltip.classList.add('show');
