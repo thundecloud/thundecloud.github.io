@@ -9,89 +9,350 @@
   <link rel="stylesheet" href="./CSS/Mainstyle.css">
   <link rel="stylesheet" href="./CSS/banner.css"> 
   <link rel="stylesheet" href="./CSS/Menu.css">
+  <style>
+    .map-container {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+    }
+    .map-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    /* 可点击区域标记样式 */
+    .clickable-marker {
+      position: absolute;
+      border: 3px solid #3b82f6;
+      border-radius: 50%;
+      background-color: rgba(59, 130, 246, 0.2);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      animation: pulse 2s infinite;
+      z-index: 10;
+    }
+
+    .clickable-marker:hover {
+      background-color: rgba(59, 130, 246, 0.4);
+      border-color: #2563eb;
+      transform: scale(1.1);
+    }
+
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      }
+    }
+
+    .marker-tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      pointer-events: none;
+      z-index: 1000;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .marker-tooltip.show {
+      opacity: 1;
+    }
+
+    .map-legend {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+    }
+
+    .map-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    .map-legend-icon {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #3b82f6;
+      border-radius: 50%;
+      background-color: rgba(59, 130, 246, 0.2);
+    }
+  </style>
 </head>
 
 <body>
-      <!-- 顶部导航栏 -->
-    <nav class="navbar">
-        <div class="container">
-            <!-- 网站Logo -->
-            <div>
-              <img src="./Picture/logo.png" alt="图片" width="200">
-            </div>
-            
-            <div>
-              <img src="./Picture/Word.png" alt="文字">
-            </div>
-        </div>
-    </nav>
+  <!-- 顶部导航栏 -->
+  <nav class="navbar">
+    <div class="container">
+      <div>
+        <img src="./Picture/logo.png" alt="图片" width="200">
+      </div>
+      <div>
+        <img src="./Picture/Word.png" alt="文字">
+      </div>
+    </div>
+  </nav>
 
-    <!-- 主导航栏 - 新增 -->
-    <nav class="main-navigation">
-        <div class="container">
-            <ul class="nav-menu">
-                <li><a href="./main.html" target="_blank">首页</a></li>
-                <li><a href="./map.html" class="active" target="_blank">探索地图</a></li>
-                <li><a href="#">故事长廊</a></li>
-                <li><a href="#">铁路概况</a></li>
-                <li><a href="#">关于我们</a></li>
-            </ul>
-        </div>
-    </nav>
-  <div class="relative inline-block">
-    <img src="./Picture/Map.jpg" class="max-w-full h-auto block" alt="地图" />
+  <!-- 主导航栏 -->
+  <nav class="main-navigation">
+    <div class="container">
+      <ul class="nav-menu">
+        <li><a href="./main.html" target="_blank">首页</a></li>
+        <li><a href="./map.html" class="active" target="_blank">探索地图</a></li>
+        <li><a href="#">故事长廊</a></li>
+        <li><a href="#">铁路概况</a></li>
+        <li><a href="#">关于我们</a></li>
+      </ul>
+    </div>
+  </nav>
 
-    <!-- 可点击区域 -->
-    <button class="absolute region" style="top: 6.24%; left: 2.51%; width: 16.93%; height: 17.74%;" data-video="material/video-1.mp4"></button>
-    <button class="absolute region" style="top: 5.97%; left: 26.51%; width: 15.19%; height: 16.47%;" data-video="material/video-2.mp4"></button>
-    <button class="absolute region" style="top: 5.35%; left: 53.75%; width: 12.39%; height: 21.05%;" data-video="material/video-3.mp4"></button>
-    <button class="absolute region" style="top: 13.46%; left: 81.89%; width: 13.52%; height: 13.28%;" data-video="material/video-4.mp4"></button>
-    <button class="absolute region" style="top: 33.62%; left: 15.74%; width: 15.48%; height: 19.26%;" data-video="material/video-5.mp4"></button>
-    <button class="absolute region" style="top: 41.87%; left: 38.40%; width: 15.52%; height: 14.62%;" data-video="material/video-6.mp4"></button>
-    <button class="absolute region" style="top: 33.62%; left: 48.56%; width: 7.99%; height: 9.99%;" data-video="material/video-7.mp4"></button>
-    <button class="absolute region" style="top: 24.85%; left: 66.31%; width: 12.68%; height: 20.25%;" data-video="material/video-8.mp4"></button>
-    <button class="absolute region" style="top: 46.69%; left: 72.62%; width: 12.91%; height: 18.28%;" data-video="material/video-9.mp4"></button>
-    <button class="absolute region" style="top: 51.13%; left: 1.34%; width: 13.47%; height: 20.68%;" data-video="material/video-10.mp4"></button>
-    <button class="absolute region" style="top: 57.67%; left: 21.82%; width: 12.07%; height: 11.68%;" data-video="material/video-11.mp4"></button>
-    <button class="absolute region" style="top: 68.63%; left: 34.61%; width: 12.52%; height: 19.61%;" data-video="material/video-12.mp4"></button>
-    <button class="absolute region" style="top: 60.56%; left: 50.86%; width: 7.92%; height: 23.35%;" data-video="material/video-15.mp4"></button>
-    <button class="absolute region" style="top: 67.95%; left: 60.23%; width: 17.10%; height: 17.47%;" data-video="material/video-14.mp4"></button>
-    <button class="absolute region" style="top: 66.08%; left: 78.37%; width: 11.29%; height: 12.58%;" data-video="material/video-13.mp4"></button>
-    <button class="absolute region" style="top: 77.40%; left: 82.34%; width: 14.90%; height: 17.13%;" data-video="material/video-16.mp4"></button>    
+  <!-- 地图容器 -->
+  <div class="map-container">
+    <img src="./Picture/Map.jpg" usemap="#image-map" alt="地图" id="mainMap" />
+    
+    <map name="image-map">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place1.html" coords="3386,2091,61" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place2.html" coords="3542,787,64" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place3.html" coords="3029,1371,40" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place4.html" coords="3210,2356,42" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place5.html" coords="3016,1687,39" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place6.html" coords="3075,2253,80" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place7.html" coords="2949,2775,58" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place8.html" coords="2873,1731,69" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place9.html" coords="2928,1546,62" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place10.html" coords="2090,1676,124" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place11.html" coords="3121,1685,51" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place12.html" coords="3071,1571,65" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place13.html" coords="3033,1264,52" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place14.html" coords="3231,2064,66" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place15.html" coords="2932,2442,51" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place16.html" coords="3050,2438,64" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place17.html" coords="3673,806,64" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place18.html" coords="2848,1853,66" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place19.html" coords="3792,857,42" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place20.html" coords="3594,990,55" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place21.html" coords="2919,1428,55" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place22.html" coords="2923,2127,60" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place23.html" coords="3029,2080,55" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place25.html" coords="3479,970,68" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place26.html" coords="3698,999,52" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place27.html" coords="3661,1084,60" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place24.html" coords="2799,1566,57" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place28.html" coords="2666,1849,64" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place29.html" coords="2237,2177,64" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place30.html" coords="2860,2350,56" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place31.html" coords="2658,2430,60" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place32.html" coords="2385,2257,79" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place33.html" coords="2528,2451,69" shape="circle">
+      <area target="_blank" alt="" title="" href="./TrainMap/Place34.html" coords="3117,1437,69" shape="circle">
+    </map>
   </div>
 
-
-      <!-- 页脚 -->
-    <footer class="footer">
-        <div class="container">
-            <!-- 页脚上部分 -->
-            <div class="footer-top">
-                <!-- 快速链接 -->
-                <div class="footer-column">
-                    <h4>快速链接</h4>
-                    <ul>
-                        <li><a href="https://www.nra.gov.cn" target="_blank">国家铁路局</a></li>
-                        <li><a href="https://www.12306.cn/index/" target="_blank">中国铁路12306网站</a></li>
-                        <li><a href="https://rczp.china-railway.com.cn" target="_blank">中国铁路人才招聘网</a></li>
-                        <li><a href="www.china-railway.com.cn" target="_blank">中国国家铁路集团有限公司</a></li>
-                    </ul>
-                </div>
-                
-                <!-- 联系信息 -->
-                <div class="footer-column">
-                    <h4>联系我们</h4>
-                    <p>✉️ 邮箱：1992113759@qq.com</p>
-                </div>
-                
-                <!-- 关注我们 -->
-                <div class="footer-column">
-                    <h4>关注我们</h4>
-                    <div class="social-links">
-                        <img src="./Picture/SRcord.png" alt="二维码" width="100">
-                    </div>
-                </div>
-            </div>
+  <!-- 页脚 -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-column">
+          <h4>快速链接</h4>
+          <ul>
+            <li><a href="https://www.nra.gov.cn" target="_blank">国家铁路局</a></li>
+            <li><a href="https://www.12306.cn/index/" target="_blank">中国铁路12306网站</a></li>
+            <li><a href="https://rczp.china-railway.com.cn" target="_blank">中国铁路人才招聘网</a></li>
+            <li><a href="www.china-railway.com.cn" target="_blank">中国国家铁路集团有限公司</a></li>
+          </ul>
         </div>
-    </footer>
+        <div class="footer-column">
+          <h4>联系我们</h4>
+          <p>✉️ 邮箱:1992113759@qq.com</p>
+        </div>
+        <div class="footer-column">
+          <h4>关注我们</h4>
+          <div class="social-links">
+            <img src="./Picture/SRcord.png" alt="二维码" width="100">
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 图像映射响应式库 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/image-map-resizer/1.0.10/js/imageMapResizer.min.js"></script>
+  
+  <script>
+    // 初始化地图标记
+    function initializeMapMarkers() {
+      const mapContainer = document.querySelector('.map-container');
+      const mapImage = document.getElementById('mainMap');
+      const areas = document.querySelectorAll('area');
+      
+      if (!mapImage || areas.length === 0) return;
+
+      // 创建图例
+      createMapLegend(mapContainer);
+
+      // 等待图片完全加载
+      if (mapImage.complete) {
+        createAllMarkers();
+      } else {
+        mapImage.addEventListener('load', createAllMarkers);
+      }
+
+      function createAllMarkers() {
+        areas.forEach((area, index) => {
+          createMarker(area, mapImage, mapContainer, index);
+        });
+      }
+
+      // 监听窗口大小变化
+      let resizeTimer;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          updateMarkerPositions(mapImage);
+        }, 250);
+      });
+      
+      // 初始化响应式图像映射
+      if (typeof imageMapResize === 'function') {
+        imageMapResize();
+      }
+    }
+
+    // 创建单个标记
+    function createMarker(area, mapImage, container, index) {
+      const shape = area.getAttribute('shape');
+      const coords = area.getAttribute('coords').split(',').map(Number);
+      
+      if (shape === 'circle') {
+        const marker = document.createElement('div');
+        marker.className = 'clickable-marker';
+        marker.dataset.index = index;
+        marker.dataset.centerX = coords[0];
+        marker.dataset.centerY = coords[1];
+        marker.dataset.radius = coords[2];
+        
+        updateMarkerStyle(marker, mapImage);
+        
+        marker.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.open(area.href, area.target || '_blank');
+        });
+        
+        marker.addEventListener('mouseenter', function(e) {
+          showTooltip(e, area, container);
+        });
+        
+        marker.addEventListener('mouseleave', function() {
+          hideTooltip(container);
+        });
+        
+        container.appendChild(marker);
+      }
+    }
+
+    // 更新标记样式和位置
+    function updateMarkerStyle(marker, mapImage) {
+      const imgWidth = mapImage.offsetWidth;
+      const imgHeight = mapImage.offsetHeight;
+      const naturalWidth = mapImage.naturalWidth;
+      const naturalHeight = mapImage.naturalHeight;
+      
+      const scaleX = imgWidth / naturalWidth;
+      const scaleY = imgHeight / naturalHeight;
+      
+      const centerX = parseFloat(marker.dataset.centerX);
+      const centerY = parseFloat(marker.dataset.centerY);
+      const radius = parseFloat(marker.dataset.radius);
+      
+      const scaledX = centerX * scaleX;
+      const scaledY = centerY * scaleY;
+      const scaledRadius = radius * Math.min(scaleX, scaleY);
+      
+      marker.style.left = (scaledX - scaledRadius) + 'px';
+      marker.style.top = (scaledY - scaledRadius) + 'px';
+      marker.style.width = (scaledRadius * 2) + 'px';
+      marker.style.height = (scaledRadius * 2) + 'px';
+    }
+
+    // 更新所有标记位置
+    function updateMarkerPositions(mapImage) {
+      const markers = document.querySelectorAll('.clickable-marker');
+      markers.forEach(marker => {
+        updateMarkerStyle(marker, mapImage);
+      });
+    }
+
+    // 显示提示信息
+    function showTooltip(event, area, container) {
+      let tooltip = container.querySelector('.marker-tooltip');
+      
+      if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'marker-tooltip';
+        container.appendChild(tooltip);
+      }
+      
+      const href = area.href;
+      const match = href.match(/Place(\d+)\.html/);
+      const placeNumber = match ? match[1] : '未知';
+      
+      tooltip.textContent = `点击查看详情`;
+      
+      const rect = container.getBoundingClientRect();
+      tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
+      tooltip.style.top = (event.clientY - rect.top - 30) + 'px';
+      
+      setTimeout(() => {
+        tooltip.classList.add('show');
+      }, 10);
+    }
+
+    // 隐藏提示信息
+    function hideTooltip(container) {
+      const tooltip = container.querySelector('.marker-tooltip');
+      if (tooltip) {
+        tooltip.classList.remove('show');
+      }
+    }
+
+    // 创建地图图例
+    function createMapLegend(container) {
+      const legend = document.createElement('div');
+      legend.className = 'map-legend';
+      legend.innerHTML = `
+        <div class="map-legend-item">
+          <div class="map-legend-icon"></div>
+          <span>可点击区域</span>
+        </div>
+      `;
+      container.appendChild(legend);
+    }
+
+    // 页面加载完成后初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeMapMarkers);
+    } else {
+      initializeMapMarkers();
+    }
+  </script>
 </body>
 </html>
