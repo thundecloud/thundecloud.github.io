@@ -209,27 +209,17 @@
       // 创建图例
       createMapLegend(mapContainer);
 
+      // 等待图片完全加载
+      if (mapImage.complete) {
+        createAllMarkers();
+      } else {
+        mapImage.addEventListener('load', createAllMarkers);
+      }
+
       function createAllMarkers() {
-        // 确保图片有尺寸信息
-        if (mapImage.naturalWidth === 0 || mapImage.naturalHeight === 0) {
-          setTimeout(createAllMarkers, 50);
-          return;
-        }
-        
         areas.forEach((area, index) => {
           createMarker(area, mapImage, mapContainer, index);
         });
-      }
-
-      // 多重保险确保图片加载完成
-      if (mapImage.complete && mapImage.naturalWidth > 0) {
-        // 图片已加载且有尺寸
-        createAllMarkers();
-      } else {
-        // 图片未加载，监听load事件
-        mapImage.addEventListener('load', createAllMarkers);
-        // 额外的保险：100ms后强制检查
-        setTimeout(createAllMarkers, 100);
       }
 
       // 监听窗口大小变化
@@ -325,7 +315,7 @@
       const match = href.match(/Place(\d+)\.html/);
       const placeNumber = match ? match[1] : '未知';
       
-      tooltip.textContent = `地点 ${placeNumber} - 点击查看详情`;
+      tooltip.textContent = `点击查看详情`;
       
       const rect = container.getBoundingClientRect();
       tooltip.style.left = (event.clientX - rect.left + 15) + 'px';
@@ -361,8 +351,7 @@
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', initializeMapMarkers);
     } else {
-      // DOM已加载，延迟一点确保图片开始加载
-      setTimeout(initializeMapMarkers, 50);
+      initializeMapMarkers();
     }
   </script>
 </body>
