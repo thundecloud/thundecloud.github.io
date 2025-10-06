@@ -270,6 +270,9 @@
 
       function createAllMarkers() {
         console.log('=== 开始创建标记 ===');
+        console.log('图片自然尺寸:', mapImage.naturalWidth, 'x', mapImage.naturalHeight);
+        console.log('图片显示尺寸:', mapImage.offsetWidth, 'x', mapImage.offsetHeight);
+        console.log('图片clientWidth:', mapImage.clientWidth, 'x', mapImage.clientHeight);
         areas.forEach((area, index) => {
           createMarker(area, mapImage, mapContainer, index);
         });
@@ -335,21 +338,33 @@
       const naturalWidth = mapImage.naturalWidth;
       const naturalHeight = mapImage.naturalHeight;
       
+      console.log('--- updateMarkerStyle 调试 ---');
+      console.log('显示尺寸:', imgWidth, 'x', imgHeight);
+      console.log('自然尺寸:', naturalWidth, 'x', naturalHeight);
+      
       const scaleX = imgWidth / naturalWidth;
       const scaleY = imgHeight / naturalHeight;
+      
+      console.log('缩放比例 scaleX:', scaleX, 'scaleY:', scaleY);
       
       const centerX = parseFloat(marker.dataset.centerX);
       const centerY = parseFloat(marker.dataset.centerY);
       const radius = parseFloat(marker.dataset.radius);
       
+      console.log('原始坐标:', centerX, centerY, '半径:', radius);
+      
       const scaledX = centerX * scaleX;
       const scaledY = centerY * scaleY;
       const scaledRadius = radius * Math.min(scaleX, scaleY);
+      
+      console.log('缩放后:', scaledX, scaledY, '半径:', scaledRadius);
       
       marker.style.left = (scaledX - scaledRadius) + 'px';
       marker.style.top = (scaledY - scaledRadius) + 'px';
       marker.style.width = (scaledRadius * 2) + 'px';
       marker.style.height = (scaledRadius * 2) + 'px';
+      
+      console.log('最终位置:', marker.style.left, marker.style.top);
     }
 
     // 更新所有标记位置
@@ -443,10 +458,6 @@
       console.log('方法2 (marker style):', { left: method2Left, top: method2Top });
       console.log('方法3 (鼠标位置):', { left: method3Left, top: method3Top });
       
-      console.log('--- 相对位置计算 ---');
-      console.log('relativeLeft:', relativeLeft);
-      console.log('relativeTop:', relativeTop);
-      
       // 方法4: 使用offsetTop/offsetLeft（最可靠）
       const method4Left = marker.offsetLeft + marker.offsetWidth / 2 + 10;
       const method4Top = marker.offsetTop - 10;
@@ -488,8 +499,11 @@
         method1: { left: method1Left.toFixed(2), top: method1Top.toFixed(2) },
         method2: { left: method2Left.toFixed(2), top: method2Top.toFixed(2) },
         method3: { left: method3Left.toFixed(2), top: method3Top.toFixed(2) },
+        method4: { left: method4Left.toFixed(2), top: method4Top.toFixed(2) },
         containerPos: containerStyle.position,
-        scrollY: window.scrollY.toFixed(2)
+        scrollY: window.scrollY.toFixed(2),
+        markerOffsetTop: marker.offsetTop.toFixed(2),
+        relativeTopProblem: relativeTop < 0 ? 'WARNING: 负值!' : 'OK'
       });
       
       setTimeout(() => {
@@ -523,11 +537,14 @@
       const debugContent = document.getElementById('debugContent');
       debugContent.innerHTML = `
         <div class="debug-item"><strong>地点:</strong> ${data.placeNumber}</div>
-        <div class="debug-item"><strong>方法1:</strong> left=${data.method1.left}, top=${data.method1.top}</div>
-        <div class="debug-item"><strong>方法2:</strong> left=${data.method2.left}, top=${data.method2.top}</div>
-        <div class="debug-item"><strong>方法3:</strong> left=${data.method3.left}, top=${data.method3.top}</div>
+        <div class="debug-item"><strong>方法1 (rect):</strong> left=${data.method1.left}, top=${data.method1.top}</div>
+        <div class="debug-item"><strong>方法2 (style):</strong> left=${data.method2.left}, top=${data.method2.top}</div>
+        <div class="debug-item"><strong>方法3 (mouse):</strong> left=${data.method3.left}, top=${data.method3.top}</div>
+        <div class="debug-item" style="color: #0f0;"><strong>方法4 (offset)✓:</strong> left=${data.method4.left}, top=${data.method4.top}</div>
         <div class="debug-item"><strong>容器定位:</strong> ${data.containerPos}</div>
         <div class="debug-item"><strong>页面滚动:</strong> ${data.scrollY}px</div>
+        <div class="debug-item"><strong>marker.offsetTop:</strong> ${data.markerOffsetTop}</div>
+        <div class="debug-item" style="color: ${data.relativeTopProblem.includes('WARNING') ? '#f00' : '#0f0'};"><strong>relativeTop状态:</strong> ${data.relativeTopProblem}</div>
       `;
     }
 
