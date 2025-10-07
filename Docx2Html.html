@@ -276,7 +276,7 @@
                 <div class="upload-zone" id="uploadZone">
                     <div class="upload-icon">📁</div>
                     <h3>点击或拖拽文件到这里</h3>
-                    <p>支持批量上传多个.docx文件</p>
+                    <p>支持.docx格式（Word 2007及以上版本）</p>
                 </div>
                 <input type="file" id="fileInput" accept=".docx" multiple>
                 <div class="file-list" id="fileList"></div>
@@ -323,11 +323,28 @@
             <div class="info-box">
                 <h4>💡 使用说明：</h4>
                 <ul>
+                    <li><strong>支持格式：</strong>仅支持.docx格式（Word 2007及以上版本）</li>
+                    <li><strong>.doc文件处理：</strong>如需转换.doc文件，请先在Word中另存为.docx格式</li>
                     <li><strong>完整HTML文件：</strong>包含完整的HTML结构，可直接在浏览器打开</li>
                     <li><strong>HTML片段：</strong>仅包含内容部分，可以直接插入到您的网站模板中</li>
                     <li><strong>图片标题：</strong>每张图片下方会生成一个可编辑的文本框，用斜体显示</li>
                     <li><strong>图片环绕：</strong>图片设置为左浮动，文字自动环绕</li>
                     <li><strong>下载：</strong>转换完成后自动打包为ZIP文件下载</li>
+                </ul>
+            </div>
+
+            <div class="info-box" style="background: #fee2e2; border-left-color: #ef4444;">
+                <h4 style="color: #991b1b;">⚠️ 关于.doc格式：</h4>
+                <ul style="color: #991b1b;">
+                    <li>本工具暂不支持.doc（Word 97-2003）格式</li>
+                    <li>如需转换.doc文件，请按以下步骤操作：
+                        <ol style="margin-top: 8px; margin-left: 20px;">
+                            <li>在Microsoft Word中打开.doc文件</li>
+                            <li>点击"文件" → "另存为"</li>
+                            <li>在"文件类型"中选择"Word文档(*.docx)"</li>
+                            <li>保存后使用本工具转换.docx文件</li>
+                        </ol>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -365,9 +382,10 @@
         });
 
         function handleFiles(files) {
-            selectedFiles = Array.from(files).filter(file => 
-                file.name.toLowerCase().endsWith('.docx')
-            );
+            selectedFiles = Array.from(files).filter(file => {
+                const name = file.name.toLowerCase();
+                return name.endsWith('.docx') || name.endsWith('.doc');
+            });
             
             displayFiles();
             convertBtn.disabled = selectedFiles.length === 0;
@@ -405,6 +423,16 @@
                 try {
                     statusEl.textContent = '转换中...';
                     statusEl.className = 'file-status';
+                    
+                    // 检查是否为.doc文件
+                    if (file.name.toLowerCase().endsWith('.doc')) {
+                        statusEl.textContent = '✗ 不支持.doc格式';
+                        statusEl.className = 'file-status error';
+                        console.warn('.doc格式不支持，请先转换为.docx格式');
+                        completed++;
+                        progressFill.style.width = (completed / selectedFiles.length * 100) + '%';
+                        continue;
+                    }
                     
                     const arrayBuffer = await file.arrayBuffer();
                     imageCounter = 0;
@@ -501,7 +529,7 @@ ${htmlContent}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${file.name.replace('.docx', '')}</title>
+    <title>${file.name.replace(/\.(docx?|doc)$/i, '')}</title>
     <style>
         body {
             font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif;
@@ -618,7 +646,7 @@ ${htmlContent}
 </html>`;
                     }
                     
-                    const fileName = file.name.replace('.docx', '.html');
+                    const fileName = file.name.replace(/\.(docx?|doc)$/i, '.html');
                     zip.file(fileName, finalHtml);
                     
                     statusEl.textContent = '✓ 完成';
